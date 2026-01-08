@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: #003366;
+    --primary-light: #0A4E7E;
+    --primary-dark: #001B3D;
+    --secondary: #00B4D8;
+    --accent: #90E0EF;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Stili per la griglia presenze tipo Excel */
+  .presenze-grid {
+    @apply overflow-x-auto border border-gray-300 rounded-lg shadow-sm;
+  }
+
+  .presenze-table {
+    @apply min-w-full divide-y divide-gray-200;
+  }
+
+  .presenze-table thead {
+    @apply bg-primary text-white sticky top-0 z-10;
+  }
+
+  .presenze-table th {
+    @apply px-2 py-3 text-xs font-bold uppercase tracking-wider text-center border-r border-primary-light;
+  }
+
+  .presenze-table tbody {
+    @apply bg-white divide-y divide-gray-200;
+  }
+
+  .presenze-table td {
+    @apply px-2 py-2 text-xs border-r border-gray-200;
+  }
+
+  /* Celle colorate in base allo stato */
+  .cella-festivo {
+    @apply bg-red-100 text-red-800 cursor-not-allowed;
+  }
+
+  .cella-semifestivo {
+    @apply bg-orange-100 text-orange-800;
+  }
+
+  .cella-presente {
+    @apply bg-green-50 text-green-900 hover:bg-green-100 cursor-pointer;
+  }
+
+  .cella-assente {
+    @apply bg-white text-gray-400 hover:bg-gray-50 cursor-pointer;
+  }
+
+  .cella-parziale {
+    @apply bg-yellow-50 text-yellow-900 hover:bg-yellow-100 cursor-pointer;
+  }
+
+  .cella-futuro {
+    @apply bg-gray-50 text-gray-400 cursor-not-allowed;
+  }
+
+  /* Stili per i bottoni */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary-light focus:ring-primary;
+  }
+
+  .btn-secondary {
+    @apply btn bg-secondary text-white hover:bg-secondary-dark focus:ring-secondary;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  }
+
+  .btn-outline {
+    @apply btn border-2 border-primary text-primary hover:bg-primary hover:text-white focus:ring-primary;
+  }
+
+  /* Stili per gli input */
+  .input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+
+  .input-error {
+    @apply input border-red-500 focus:ring-red-500;
+  }
+
+  /* Stili per le card */
+  .card {
+    @apply bg-white rounded-lg shadow-md p-6;
+  }
+
+  /* Stili per il modal */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50;
+  }
+
+  .modal-content {
+    @apply bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto m-4;
+  }
+
+  /* Toast notifications */
+  .toast {
+    @apply fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg z-50 animate-slide-in;
+  }
+
+  .toast-success {
+    @apply toast bg-green-500 text-white;
+  }
+
+  .toast-error {
+    @apply toast bg-red-500 text-white;
+  }
+
+  .toast-info {
+    @apply toast bg-blue-500 text-white;
+  }
+
+  /* Loading spinner */
+  .spinner {
+    @apply inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-admin {
+    @apply badge bg-purple-100 text-purple-800;
+  }
+
+  .badge-dipendente {
+    @apply badge bg-blue-100 text-blue-800;
+  }
+
+  .badge-collaboratore {
+    @apply badge bg-green-100 text-green-800;
+  }
+}
+
+@layer utilities {
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+}

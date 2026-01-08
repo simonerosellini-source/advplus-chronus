@@ -1,0 +1,302 @@
+'use client';
+
+// Vista Presenze Personali per dipendenti/collaboratori
+import { useState, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Calendar, Clock, TrendingUp } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { LoadingSpinner } from '@/components/ui/Loading';
+import { useToast } from '@/components/ui/Toast';
+import {
+  getGiorniMese,
+  MESI_ITALIANI,
+  formatTime,
+  formatDateIT,
+  toISODate,
+  isFuturo,
+} from '@/lib/utils/date';
+import type { Presenza, GiornoFestivo, GiornoCalendario } from '@/types/database.types';
+import { Badge } from '@/components/ui/Badge';
+
+interface PresenzePersonaliProps {
+  userId: string;
+}
+
+export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
+  const [anno, setAnno] = useState(new Date().getFullYear());
+  const [mese, setMese] = useState(new Date().getMonth() + 1);
+  const [loading, setLoading] = useState(true);
+  const [presenze, setPresenze] = useState<Presenza[]>([]);
+  const [festivi, setFestivi] = useState<GiornoFestivo[]>([]);
+
+  const { showToast } = useToast();
+  const supabase = createClient();
+
+  // Carica dati
+  useEffect(() => {
+    loadData();
+  }, [anno, mese]);
+
+  async function loadData() {
+    setLoading(true);
+    try {
+      // Carica presenze del mese
+      const primoGiorno = `${anno}-${String(mese).padStart(2, '0')}-01`;
+      const ultimoGiorno = new Date(anno, mese, 0);
+      const ultimoGiornoStr = `${anno}-${String(mese).padStart(2, '0')}-${ultimoGiorno.getDate()}`;
+
+      const { data: presenzeData, error: presenzeError } = await supabase
+        .from('presenze')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('data', primoGiorno)
+        .lte('data', ultimoGiornoStr);
+
+      if (presenzeError) throw presenzeError;
+
+      // Carica festività dell'anno
+      const { data: festiviData, error: festiviError } = await supabase
+        .from('giorni_festivi')
+        .select('*')
+        .eq('anno', anno)
+        .order('data', { ascending: true });
+
+      if (festiviError) throw festiviError;
+
+      setPresenze(presenzeData || []);
+      setFestivi(festiviData || []);
+    } catch (error) {
+      console.error('Errore caricamento dati:', error);
+      showToast('Errore durante il caricamento dei dati', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function prevMonth() {
+    if (mese === 1) {
+      setMese(12);
+      setAnno(anno - 1);
+    } else {
+      setMese(mese - 1);
+    }
+  }
+
+  function nextMonth() {
+    if (mese === 12) {
+      setMese(1);
+      setAnno(anno + 1);
+    } else {
+      setMese(mese + 1);
+    }
+  }
+
+  function goToCurrentMonth() {
+    setAnno(new Date().getFullYear());
+    setMese(new Date().getMonth() + 1);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoadingSpinner className="h-12 w-12 text-primary" />
+      </div>
+    );
+  }
+
+  const giorniMese = getGiorniMese(anno, mese);
+  const festiviMap = new Map(festivi.map((f) => [f.data, f]));
+  const presenzeMap = new Map(presenze.map((p) => [p.data, p]));
+
+  // Prepara giorni con dati
+  const giorni: GiornoCalendario[] = giorniMese.map((dataObj) => {
+    const data = toISODate(dataObj);
+    const festivo = festiviMap.get(data);
+    const presenza = presenzeMap.get(data);
+    const futuro = isFuturo(data);
+
+    let tipo: GiornoCalendario['tipo'] = 'normale';
+    if (futuro) tipo = 'futuro';
+    else if (festivo?.tipo === 'festivo') tipo = 'festivo';
+    else if (festivo?.tipo === 'semifestivo') tipo = 'semifestivo';
+
+    return {
+      data,
+      giorno: dataObj.getDate(),
+      tipo,
+      presenza,
+      festivo,
+    };
+  });
+
+  // Calcola statistiche
+  const oreTotaliMese = presenze.reduce((sum, p) => sum + (p.ore_totali || 0), 0);
+  const giorniPresenza = presenze.filter((p) => p.ore_totali > 0).length;
+  const giorniLavorativi = giorni.filter(
+    (g) => g.tipo !== 'festivo' && g.tipo !== 'futuro'
+  ).length;
+  const giorniAssenza = giorniLavorativi - giorniPresenza;
+  const mediaOreGiornaliere = giorniPresenza > 0 ? oreTotaliMese / giorniPresenza : 0;
+
+  const isCurrentMonth = anno === new Date().getFullYear() && mese === new Date().getMonth() + 1;
+
+  return (
+    <div className="space-y-6">
+      {/* Statistiche */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary/10 p-3 rounded-lg">
+              <Clock className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Ore Totali</p>
+              <p className="text-2xl font-bold text-primary">{oreTotaliMese.toFixed(1)}h</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center gap-3">
+            <div className="bg-green-100 p-3 rounded-lg">
+              <Calendar className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Giorni Presenza</p>
+              <p className="text-2xl font-bold text-green-600">{giorniPresenza}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-100 p-3 rounded-lg">
+              <Calendar className="h-6 w-6 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Giorni Assenza</p>
+              <p className="text-2xl font-bold text-red-600">{giorniAssenza}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center gap-3">
+            <div className="bg-secondary/10 p-3 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-secondary" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Media Ore/Giorno</p>
+              <p className="text-2xl font-bold text-secondary">{mediaOreGiornaliere.toFixed(1)}h</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Calendario */}
+      <div className="card">
+        {/* Header navigazione */}
+        <div className="flex items-center justify-between mb-6">
+          <button onClick={prevMonth} className="btn-outline p-2">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-primary">
+              {MESI_ITALIANI[mese - 1]} {anno}
+            </h2>
+            {!isCurrentMonth && (
+              <button
+                onClick={goToCurrentMonth}
+                className="text-sm text-secondary hover:underline mt-1"
+              >
+                Vai al mese corrente
+              </button>
+            )}
+          </div>
+
+          <button onClick={nextMonth} className="btn-outline p-2">
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Griglia calendario */}
+        <div className="grid grid-cols-7 gap-2">
+          {/* Header giorni settimana */}
+          {['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'].map((giorno) => (
+            <div
+              key={giorno}
+              className="text-center text-xs font-bold text-gray-600 py-2"
+            >
+              {giorno}
+            </div>
+          ))}
+
+          {/* Celle vuote per allineamento */}
+          {Array.from({ length: (giorniMese[0].getDay() + 6) % 7 }).map((_, i) => (
+            <div key={`empty-${i}`} />
+          ))}
+
+          {/* Giorni del mese */}
+          {giorni.map((giorno) => {
+            let bgColor = 'bg-white hover:bg-gray-50';
+            if (giorno.tipo === 'festivo') bgColor = 'bg-red-50';
+            else if (giorno.tipo === 'semifestivo') bgColor = 'bg-orange-50';
+            else if (giorno.tipo === 'futuro') bgColor = 'bg-gray-50';
+            else if (giorno.presenza) bgColor = 'bg-green-50';
+
+            const borderColor =
+              giorno.tipo === 'festivo'
+                ? 'border-red-200'
+                : giorno.tipo === 'semifestivo'
+                ? 'border-orange-200'
+                : 'border-gray-200';
+
+            return (
+              <div
+                key={giorno.data}
+                className={`${bgColor} border ${borderColor} rounded-lg p-3 min-h-[100px] relative`}
+              >
+                <div className="font-bold text-primary mb-1">{giorno.giorno}</div>
+
+                {giorno.festivo && (
+                  <div className="text-[10px] text-gray-600 mb-1">
+                    {giorno.festivo.nome.substring(0, 20)}
+                  </div>
+                )}
+
+                {giorno.presenza && (
+                  <div className="text-xs space-y-1">
+                    {giorno.presenza.ingresso_mattina && (
+                      <div className="text-gray-700">
+                        🌅 {formatTime(giorno.presenza.ingresso_mattina)}-
+                        {formatTime(giorno.presenza.uscita_mattina)}
+                      </div>
+                    )}
+                    {giorno.presenza.ingresso_pomeriggio && (
+                      <div className="text-gray-700">
+                        🌆 {formatTime(giorno.presenza.ingresso_pomeriggio)}-
+                        {formatTime(giorno.presenza.uscita_pomeriggio)}
+                      </div>
+                    )}
+                    <div className="font-bold text-primary mt-1">
+                      {giorno.presenza.ore_totali.toFixed(1)}h
+                    </div>
+                    {giorno.presenza.note && (
+                      <div className="text-[10px] text-gray-500 italic">
+                        📝 {giorno.presenza.note.substring(0, 30)}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!giorno.presenza && giorno.tipo === 'normale' && (
+                  <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
