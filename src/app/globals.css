@@ -11,10 +11,6 @@
     --accent: #90E0EF;
   }
 
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply bg-gray-50 text-gray-900;
     font-feature-settings: "rlig" 1, "calt" 1;
