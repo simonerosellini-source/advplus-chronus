@@ -98,11 +98,8 @@ export function GestioneUtentiView() {
   async function handleToggleActive(user: User) {
     try {
       const updateData = { attivo: !user.attivo };
-      // @ts-ignore - TypeScript incorrectly infers update parameter type as never
-      const { error } = await supabase
-        .from('users')
-        .update(updateData)
-        .eq('id', user.id);
+      // @ts-expect-error - TypeScript incorrectly infers update parameter type as never
+      const { error } = await supabase.from('users').update(updateData).eq('id', user.id);
 
       if (error) throw error;
 
