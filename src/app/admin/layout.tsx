@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { ToastProvider } from '@/components/ui/Toast';
+import type { User } from '@/types/database.types';
 
 export default async function AdminLayout({
   children,
@@ -25,7 +26,7 @@ export default async function AdminLayout({
     .from('users')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .single() as { data: User | null };
 
   if (!userData || userData.ruolo !== 'amministratore') {
     redirect('/dipendente');
