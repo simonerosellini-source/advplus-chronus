@@ -98,10 +98,10 @@ export function GestioneUtentiView() {
   async function handleToggleActive(user: User) {
     try {
       const updateData = { attivo: !user.attivo };
-      const { error } = await supabase
+      const { error } = (await supabase
         .from('users')
         .update(updateData)
-        .eq('id', user.id);
+        .eq('id', user.id)) as { error: any };
 
       if (error) throw error;
 
