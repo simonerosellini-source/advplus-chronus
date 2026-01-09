@@ -66,7 +66,7 @@ export function GestioneFestiviView() {
           nome: f.nome,
           tipo: f.tipo,
           anno,
-        }))
+        })) as any
       );
 
       if (error) throw error;
