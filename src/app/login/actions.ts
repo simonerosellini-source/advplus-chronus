@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { loginSchema } from '@/lib/utils/validations';
+import type { User } from '@/types/database.types';
 import type { z } from 'zod';
 
 /**
@@ -45,7 +46,7 @@ export async function login(formData: FormData) {
     .from('users')
     .select('ruolo, attivo')
     .eq('id', user.id)
-    .single();
+    .single() as { data: Pick<User, 'ruolo' | 'attivo'> | null; error: any };
 
   if (userError || !userData) {
     return { error: 'Errore durante il recupero dei dati utente' };
