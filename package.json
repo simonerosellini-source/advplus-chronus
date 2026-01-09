@@ -1,7 +1,7 @@
 {
-  "name": "advisory-plus-calendar",
+  "name": "chronus-plus",
   "version": "1.0.0",
-  "description": "Sistema Calendario e Gestione Presenze - Advisory+",
+  "description": "Chronus+ - Sistema Calendario e Gestione Presenze",
   "private": true,
   "scripts": {
     "dev": "next dev",

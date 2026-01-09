@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Advisory+ Calendar | Sistema Gestione Presenze',
-  description: 'Sistema Calendario e Gestione Presenze Aziendale',
+  title: 'Chronus+ | Sistema Gestione Presenze',
+  description: 'Chronus+ - Sistema Calendario e Gestione Presenze Aziendale',
 };
 
 export default function RootLayout({
