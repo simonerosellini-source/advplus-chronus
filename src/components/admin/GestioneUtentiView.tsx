@@ -97,7 +97,8 @@ export function GestioneUtentiView() {
 
   async function handleToggleActive(user: User) {
     try {
-      const updateData: any = { attivo: !user.attivo };
+      const updateData = { attivo: !user.attivo };
+      // @ts-ignore - TypeScript incorrectly infers update parameter type as never
       const { error } = await supabase
         .from('users')
         .update(updateData)
