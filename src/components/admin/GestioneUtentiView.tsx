@@ -99,7 +99,7 @@ export function GestioneUtentiView() {
     try {
       const { error } = await supabase
         .from('users')
-        .update({ attivo: !user.attivo })
+        .update({ attivo: !user.attivo } as any)
         .eq('id', user.id);
 
       if (error) throw error;
