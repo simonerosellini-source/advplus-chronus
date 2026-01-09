@@ -1,6 +1,7 @@
 // Dashboard Dipendente/Collaboratore
 import { createClient } from '@/lib/supabase/server';
 import { PresenzePersonali } from '@/components/dipendente/PresenzePersonali';
+import type { User } from '@/types/database.types';
 
 export default async function DipendenteDashboard() {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function DipendenteDashboard() {
     .from('users')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .single() as { data: User | null };
 
   if (!userData) {
     return null;
