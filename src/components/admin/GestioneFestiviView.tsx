@@ -173,7 +173,7 @@ export function GestioneFestiviView() {
         </div>
 
         <p className="text-gray-500 text-xs mt-3">
-          La funzione "Genera Festività Anno" crea automaticamente tutte le festività predefinite
+          La funzione &quot;Genera Festività Anno&quot; crea automaticamente tutte le festività predefinite
           (Art. 31) incluse Pasqua e Venerdì Santo
         </p>
       </div>
