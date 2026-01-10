@@ -37,7 +37,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
   // Carica nome utente
   useEffect(() => {
     async function loadUserName() {
-      const { data } = await supabase.from('users').select('nome, cognome').eq('id', userId).single();
+      const { data } = await supabase.from('users').select('nome, cognome').eq('id', userId).single() as { data: { nome: string; cognome: string } | null };
       if (data) {
         setUserName(`${data.nome} ${data.cognome}`);
       }
