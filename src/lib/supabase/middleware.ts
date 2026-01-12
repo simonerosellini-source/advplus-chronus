@@ -52,7 +52,7 @@ export async function updateSession(request: NextRequest) {
       .from('users')
       .select('ruolo')
       .eq('id', user.id)
-      .single();
+      .single() as { data: { ruolo: string } | null };
 
     const url = request.nextUrl.clone();
     url.pathname = userData?.ruolo === 'amministratore' ? '/admin' : '/dipendente';
@@ -65,7 +65,7 @@ export async function updateSession(request: NextRequest) {
       .from('users')
       .select('ruolo')
       .eq('id', user.id)
-      .single();
+      .single() as { data: { ruolo: string } | null };
 
     if (userData?.ruolo !== 'amministratore') {
       const url = request.nextUrl.clone();
@@ -80,7 +80,7 @@ export async function updateSession(request: NextRequest) {
       .from('users')
       .select('ruolo')
       .eq('id', user.id)
-      .single();
+      .single() as { data: { ruolo: string } | null };
 
     if (userData?.ruolo === 'amministratore') {
       const url = request.nextUrl.clone();
