@@ -97,7 +97,6 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
       }
 
       // Upsert presenza
-      // @ts-expect-error - TypeScript incorrectly infers upsert parameter type as never
       const { error } = await supabase
         .from('presenze')
         .upsert(
