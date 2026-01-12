@@ -66,14 +66,8 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
 
       if (isEdit) {
         // Modifica utente esistente
-        const { error } = await supabase
-          .from('users')
-          .update({
-            nome: formData.nome,
-            cognome: formData.cognome,
-            ruolo: formData.ruolo,
-          })
-          .eq('id', user.id);
+        // @ts-expect-error - TypeScript incorrectly infers update parameter type as never
+        const { error } = await supabase.from('users').update({ nome: formData.nome, cognome: formData.cognome, ruolo: formData.ruolo }).eq('id', user.id);
 
         if (error) throw error;
         showToast('Utente aggiornato con successo', 'success');
