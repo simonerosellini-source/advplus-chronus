@@ -54,8 +54,14 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single() as { data: { ruolo: string } | null };
 
+    // Se l'utente non esiste nella tabella users, fare logout
+    if (!userData) {
+      await supabase.auth.signOut();
+      return NextResponse.redirect(request.nextUrl);
+    }
+
     const url = request.nextUrl.clone();
-    url.pathname = userData?.ruolo === 'amministratore' ? '/admin' : '/dipendente';
+    url.pathname = userData.ruolo === 'amministratore' ? '/admin' : '/dipendente';
     return NextResponse.redirect(url);
   }
 
@@ -67,7 +73,15 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single() as { data: { ruolo: string } | null };
 
-    if (userData?.ruolo !== 'amministratore') {
+    // Se l'utente non esiste nella tabella users, fare logout
+    if (!userData) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+
+    if (userData.ruolo !== 'amministratore') {
       const url = request.nextUrl.clone();
       url.pathname = '/dipendente';
       return NextResponse.redirect(url);
@@ -82,7 +96,15 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single() as { data: { ruolo: string } | null };
 
-    if (userData?.ruolo === 'amministratore') {
+    // Se l'utente non esiste nella tabella users, fare logout
+    if (!userData) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+
+    if (userData.ruolo === 'amministratore') {
       const url = request.nextUrl.clone();
       url.pathname = '/admin';
       return NextResponse.redirect(url);
