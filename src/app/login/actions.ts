@@ -41,12 +41,15 @@ export async function login(formData: FormData) {
     return { error: 'Errore durante l\'autenticazione' };
   }
 
-  // Ottieni il ruolo dell'utente
-  const { data: userData, error: userError } = await supabase
+  // Ottieni il ruolo dell'utente usando admin client per bypassare RLS
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const adminClient = createAdminClient();
+
+  const { data: userData, error: userError } = await adminClient
     .from('users')
     .select('ruolo, attivo')
     .eq('id', user.id)
-    .single() as { data: Pick<User, 'ruolo' | 'attivo'> | null; error: any };
+    .single();
 
   if (userError || !userData) {
     return { error: 'Errore durante il recupero dei dati utente' };
