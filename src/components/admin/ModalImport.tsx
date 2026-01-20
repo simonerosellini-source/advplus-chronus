@@ -57,7 +57,6 @@ export function ModalImport({ onClose, onSuccess }: ModalImportProps) {
       const presenzeToInsert = [];
 
       // Carica tutti gli utenti per mapping email -> ID
-      // @ts-expect-error - TypeScript type inference issue with Supabase query
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, email, nome, cognome') as { data: User[] | null; error: any };
