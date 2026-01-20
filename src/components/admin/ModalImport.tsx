@@ -54,7 +54,15 @@ export function ModalImport({ onClose, onSuccess }: ModalImportProps) {
       const rows = jsonData.slice(2);
 
       const errors: Array<{ row: number; error: string }> = [];
-      const presenzeToInsert = [];
+      const presenzeToInsert: Array<{
+        user_id: string;
+        data: string;
+        ingresso_mattina: string | null;
+        uscita_mattina: string | null;
+        ingresso_pomeriggio: string | null;
+        uscita_pomeriggio: string | null;
+        note: string | null;
+      }> = [];
 
       // Carica tutti gli utenti per mapping email -> ID
       const { data: users, error: usersError } = await supabase
@@ -107,7 +115,6 @@ export function ModalImport({ onClose, onSuccess }: ModalImportProps) {
       // Inserisci in batch
       let successCount = 0;
       if (presenzeToInsert.length > 0) {
-        // @ts-expect-error - Supabase type inference issue with upsert
         const { error: insertError } = await supabase
           .from('presenze')
           .upsert(presenzeToInsert, { onConflict: 'user_id,data' });
