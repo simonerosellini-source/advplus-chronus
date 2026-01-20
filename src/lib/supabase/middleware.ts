@@ -2,6 +2,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/types/database.types';
+import { createAdminClient } from './admin';
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -48,7 +49,8 @@ export async function updateSession(request: NextRequest) {
 
   // Se autenticato e sulla pagina di login, redirect alla dashboard appropriata
   if (user && isLoginPage) {
-    const { data: userData } = await supabase
+    const adminClient = createAdminClient();
+    const { data: userData } = await adminClient
       .from('users')
       .select('ruolo')
       .eq('id', user.id)
@@ -67,7 +69,8 @@ export async function updateSession(request: NextRequest) {
 
   // Controllo permessi per route admin
   if (user && isAdminRoute) {
-    const { data: userData } = await supabase
+    const adminClient = createAdminClient();
+    const { data: userData } = await adminClient
       .from('users')
       .select('ruolo')
       .eq('id', user.id)
@@ -90,7 +93,8 @@ export async function updateSession(request: NextRequest) {
 
   // Controllo permessi per route dipendente/collaboratore
   if (user && isDipendenteRoute) {
-    const { data: userData } = await supabase
+    const adminClient = createAdminClient();
+    const { data: userData } = await adminClient
       .from('users')
       .select('ruolo')
       .eq('id', user.id)
