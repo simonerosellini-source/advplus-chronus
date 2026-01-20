@@ -115,10 +115,9 @@ export function ModalImport({ onClose, onSuccess }: ModalImportProps) {
       // Inserisci in batch
       let successCount = 0;
       if (presenzeToInsert.length > 0) {
-        // @ts-expect-error - Supabase type inference issue with upsert
         const { error: insertError } = await supabase
           .from('presenze')
-          .upsert(presenzeToInsert, { onConflict: 'user_id,data' });
+          .upsert(presenzeToInsert as any, { onConflict: 'user_id,data' });
 
         if (insertError) {
           throw insertError;
