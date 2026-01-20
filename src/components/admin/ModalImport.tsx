@@ -144,7 +144,7 @@ export function ModalImport({ onClose, onSuccess }: ModalImportProps) {
   }
 
   return (
-    <Modal title="Importa Presenze" onClose={onClose}>
+    <Modal isOpen={true} title="Importa Presenze" onClose={onClose}>
       <div className="space-y-4">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
           <p className="font-medium text-blue-900 mb-2">Formato file richiesto:</p>
