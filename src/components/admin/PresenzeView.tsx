@@ -10,6 +10,7 @@ import { GrigliaPresenze } from './GrigliaPresenze';
 import { ModalPresenza } from './ModalPresenza';
 import { getGiorniMese, MESI_ITALIANI } from '@/lib/utils/date';
 import type { User, Presenza, GiornoFestivo, RigaPresenze } from '@/types/database.types';
+import * as XLSX from 'xlsx';
 
 export function PresenzeView() {
   const [anno, setAnno] = useState(new Date().getFullYear());
@@ -114,6 +115,82 @@ export function PresenzeView() {
     showToast('Presenza salvata con successo', 'success');
   }
 
+  // Export Excel
+  function handleExportExcel() {
+    try {
+      const giorni = getGiorniMese(anno, mese);
+
+      // Crea i dati per Excel
+      const excelData = [];
+
+      // Header row con giorni del mese
+      const headerRow = ['Nome', 'Cognome'];
+      giorni.forEach(giorno => {
+        headerRow.push(`${giorno.giorno}`);
+      });
+      headerRow.push('Totale Ore');
+      excelData.push(headerRow);
+
+      // Seconda riga con giorni settimana
+      const dayNamesRow = ['', ''];
+      giorni.forEach(giorno => {
+        const data = new Date(giorno.data);
+        const giornoSettimana = data.toLocaleDateString('it-IT', { weekday: 'short' });
+        dayNamesRow.push(giornoSettimana);
+      });
+      dayNamesRow.push('');
+      excelData.push(dayNamesRow);
+
+      // Righe per ogni utente
+      users.forEach(user => {
+        const row = [user.nome, user.cognome];
+        let totaleOreUtente = 0;
+
+        giorni.forEach(giorno => {
+          const presenza = presenze.find(
+            p => p.user_id === user.id && p.data === giorno.data
+          );
+          const festivo = festivi.find(f => f.data === giorno.data);
+
+          if (festivo) {
+            row.push(festivo.tipo === 'festivo' ? 'FEST' : 'SEMI');
+          } else if (presenza) {
+            const ore = presenza.ore_totali || 0;
+            totaleOreUtente += ore;
+            row.push(`${ore}h`);
+          } else {
+            row.push('-');
+          }
+        });
+
+        row.push(`${totaleOreUtente.toFixed(1)}h`);
+        excelData.push(row);
+      });
+
+      // Crea workbook e worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(excelData);
+
+      // Imposta larghezza colonne
+      const colWidths = [{ wch: 15 }, { wch: 15 }];
+      giorni.forEach(() => colWidths.push({ wch: 8 }));
+      colWidths.push({ wch: 12 });
+      ws['!cols'] = colWidths;
+
+      // Aggiungi worksheet al workbook
+      XLSX.utils.book_append_sheet(wb, ws, `Presenze ${MESI_ITALIANI[mese - 1]}`);
+
+      // Salva file
+      const filename = `Presenze_${MESI_ITALIANI[mese - 1]}_${anno}_${Date.now()}.xlsx`;
+      XLSX.writeFile(wb, filename);
+
+      showToast('Excel esportato con successo', 'success');
+    } catch (error) {
+      console.error('Errore export Excel:', error);
+      showToast('Errore durante l\'esportazione', 'error');
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -156,11 +233,11 @@ export function PresenzeView() {
 
         {/* Azioni */}
         <div className="flex items-center gap-2">
-          <button className="btn-outline text-sm py-2 px-3 flex items-center gap-2">
+          <button className="btn-outline text-sm py-2 px-3 flex items-center gap-2" title="Importa presenze da file">
             <Upload className="h-4 w-4" />
             <span className="hidden sm:inline">Importa</span>
           </button>
-          <button className="btn-secondary text-sm py-2 px-3 flex items-center gap-2">
+          <button onClick={handleExportExcel} className="btn-secondary text-sm py-2 px-3 flex items-center gap-2" title="Esporta presenze in Excel">
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Esporta Excel</span>
           </button>
