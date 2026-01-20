@@ -8,6 +8,7 @@ import { LoadingSpinner, TableSkeleton } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
 import { GrigliaPresenze } from './GrigliaPresenze';
 import { ModalPresenza } from './ModalPresenza';
+import { ModalImport } from './ModalImport';
 import { getGiorniMese, MESI_ITALIANI } from '@/lib/utils/date';
 import type { User, Presenza, GiornoFestivo, RigaPresenze } from '@/types/database.types';
 import * as XLSX from 'xlsx';
@@ -24,6 +25,7 @@ export function PresenzeView() {
     data: string;
     presenza?: Presenza;
   } | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const { showToast } = useToast();
   const supabase = createClient();
@@ -233,7 +235,7 @@ export function PresenzeView() {
 
         {/* Azioni */}
         <div className="flex items-center gap-2">
-          <button className="btn-outline text-sm py-2 px-3 flex items-center gap-2" title="Importa presenze da file">
+          <button onClick={() => setShowImportModal(true)} className="btn-outline text-sm py-2 px-3 flex items-center gap-2" title="Importa presenze da file">
             <Upload className="h-4 w-4" />
             <span className="hidden sm:inline">Importa</span>
           </button>
@@ -283,6 +285,17 @@ export function PresenzeView() {
           presenza={selectedPresenza.presenza}
           onClose={() => setSelectedPresenza(null)}
           onSave={handleSavePresenza}
+        />
+      )}
+
+      {/* Modal import presenze */}
+      {showImportModal && (
+        <ModalImport
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => {
+            loadData();
+            setShowImportModal(false);
+          }}
         />
       )}
     </div>
