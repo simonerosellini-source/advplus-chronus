@@ -77,16 +77,17 @@ export function GestioneUtentiView() {
     }
 
     try {
-      // Prima elimina l'utente dalla tabella users
-      const { error: userError } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', user.id);
+      // Chiama API route per eliminare sia da public.users che da auth.users
+      const response = await fetch(`/api/users/${user.id}/delete`, {
+        method: 'DELETE',
+      });
 
-      if (userError) throw userError;
+      const data = await response.json();
 
-      // Poi elimina da auth.users (richiede service role key)
-      // Questo verrà fatto tramite un trigger o una API route
+      if (!response.ok) {
+        throw new Error(data.error || 'Errore durante l\'eliminazione');
+      }
+
       showToast('Utente eliminato con successo', 'success');
       loadUsers();
     } catch (error: any) {
