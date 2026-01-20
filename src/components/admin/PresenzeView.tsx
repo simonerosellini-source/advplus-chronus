@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/Toast';
 import { GrigliaPresenze } from './GrigliaPresenze';
 import { ModalPresenza } from './ModalPresenza';
 import { ModalImport } from './ModalImport';
-import { getGiorniMese, MESI_ITALIANI } from '@/lib/utils/date';
+import { getGiorniMese, MESI_ITALIANI, toISODate } from '@/lib/utils/date';
 import type { User, Presenza, GiornoFestivo, RigaPresenze } from '@/types/database.types';
 import * as XLSX from 'xlsx';
 
@@ -128,7 +128,7 @@ export function PresenzeView() {
       // Header row con giorni del mese
       const headerRow = ['Nome', 'Cognome'];
       giorni.forEach(giorno => {
-        headerRow.push(`${giorno.giorno}`);
+        headerRow.push(`${giorno.getDate()}`);
       });
       headerRow.push('Totale Ore');
       excelData.push(headerRow);
@@ -136,8 +136,7 @@ export function PresenzeView() {
       // Seconda riga con giorni settimana
       const dayNamesRow = ['', ''];
       giorni.forEach(giorno => {
-        const data = new Date(giorno.data);
-        const giornoSettimana = data.toLocaleDateString('it-IT', { weekday: 'short' });
+        const giornoSettimana = giorno.toLocaleDateString('it-IT', { weekday: 'short' });
         dayNamesRow.push(giornoSettimana);
       });
       dayNamesRow.push('');
@@ -149,10 +148,11 @@ export function PresenzeView() {
         let totaleOreUtente = 0;
 
         giorni.forEach(giorno => {
+          const dataISO = toISODate(giorno);
           const presenza = presenze.find(
-            p => p.user_id === user.id && p.data === giorno.data
+            p => p.user_id === user.id && p.data === dataISO
           );
-          const festivo = festivi.find(f => f.data === giorno.data);
+          const festivo = festivi.find(f => f.data === dataISO);
 
           if (festivo) {
             row.push(festivo.tipo === 'festivo' ? 'FEST' : 'SEMI');
