@@ -1,5 +1,6 @@
 // Layout per la dashboard amministratore
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { redirect } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { ToastProvider } from '@/components/ui/Toast';
@@ -21,8 +22,9 @@ export default async function AdminLayout({
     redirect('/login');
   }
 
-  // Verifica ruolo amministratore
-  const { data: userData } = await supabase
+  // Verifica ruolo amministratore usando admin client
+  const adminClient = createAdminClient();
+  const { data: userData } = await adminClient
     .from('users')
     .select('*')
     .eq('id', user.id)

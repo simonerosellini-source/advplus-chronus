@@ -1,5 +1,6 @@
 // Dashboard Dipendente/Collaboratore
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { PresenzePersonali } from '@/components/dipendente/PresenzePersonali';
 import type { User } from '@/types/database.types';
 
@@ -14,7 +15,8 @@ export default async function DipendenteDashboard() {
     return null;
   }
 
-  const { data: userData } = await supabase
+  const adminClient = createAdminClient();
+  const { data: userData } = await adminClient
     .from('users')
     .select('*')
     .eq('id', user.id)
