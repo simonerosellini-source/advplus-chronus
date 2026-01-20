@@ -7,6 +7,7 @@ import { Modal } from '../ui/Modal';
 import * as XLSX from 'xlsx';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '../ui/Toast';
+import type { User } from '@/types/database.types';
 
 interface ModalImportProps {
   onClose: () => void;
@@ -56,9 +57,10 @@ export function ModalImport({ onClose, onSuccess }: ModalImportProps) {
       const presenzeToInsert = [];
 
       // Carica tutti gli utenti per mapping email -> ID
+      // @ts-expect-error - TypeScript type inference issue with Supabase query
       const { data: users, error: usersError } = await supabase
         .from('users')
-        .select('id, email, nome, cognome');
+        .select('id, email, nome, cognome') as { data: User[] | null; error: any };
 
       if (usersError) throw usersError;
 
