@@ -42,7 +42,6 @@ export function PresenzeView() {
       const { data: usersData, error: usersError } = await supabase
         .from('users')
         .select('*')
-        .eq('attivo', true)
         .order('cognome', { ascending: true });
 
       if (usersError) throw usersError;
@@ -72,9 +71,10 @@ export function PresenzeView() {
       setUsers(usersData || []);
       setPresenze(presenzeData || []);
       setFestivi(festiviData || []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Errore caricamento dati:', error);
-      showToast('Errore durante il caricamento dei dati', 'error');
+      const errorMessage = error?.message || 'Errore durante il caricamento dei dati';
+      showToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
