@@ -6,6 +6,7 @@ import { Users, Calendar as CalendarIcon, CalendarDays, BarChart3 } from 'lucide
 import { PresenzeView } from '@/components/admin/PresenzeView';
 import { GestioneUtentiView } from '@/components/admin/GestioneUtentiView';
 import { GestioneFestiviView } from '@/components/admin/GestioneFestiviView';
+import { ReportView } from '@/components/admin/ReportView';
 
 type Tab = 'presenze' | 'utenti' | 'festivi' | 'report';
 
@@ -60,12 +61,7 @@ export default function AdminDashboard() {
           {activeTab === 'presenze' && <PresenzeView />}
           {activeTab === 'utenti' && <GestioneUtentiView />}
           {activeTab === 'festivi' && <GestioneFestiviView />}
-          {activeTab === 'report' && (
-            <div className="text-center py-12">
-              <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">Report e statistiche in sviluppo</p>
-            </div>
-          )}
+          {activeTab === 'report' && <ReportView />}
         </div>
       </div>
     </div>
