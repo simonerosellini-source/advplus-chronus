@@ -29,9 +29,9 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
     uscita_pomeriggio: presenza?.uscita_pomeriggio ? formatTime(presenza.uscita_pomeriggio) : '',
     note: presenza?.note || '',
     straordinari: presenza?.straordinari || 0,
-    malattia: presenza?.malattia || false,
-    legge_104: presenza?.legge_104 || false,
-    ferie: presenza?.ferie || false,
+    malattia: presenza?.malattia || 0,
+    legge_104: presenza?.legge_104 || 0,
+    ferie: presenza?.ferie || 0,
     ore_trasferte: presenza?.ore_trasferte || 0,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -259,7 +259,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
         <div className="space-y-4 border-t pt-4">
           <h3 className="font-semibold text-gray-900">Informazioni Aggiuntive</h3>
 
-          {/* Grid per campi numerici */}
+          {/* Grid per tutti i campi numerici orari */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -289,45 +289,47 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 className="input"
               />
             </div>
-          </div>
-
-          {/* Checkbox per assenze/permessi */}
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="malattia"
-                checked={formData.malattia}
-                onChange={(e) => handleChange('malattia', e.target.checked)}
-                className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
-              />
-              <label htmlFor="malattia" className="text-sm font-medium text-gray-700">
-                Malattia
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Malattia (ore)
               </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.malattia}
+                onChange={(e) => handleChange('malattia', parseFloat(e.target.value) || 0)}
+                className="input"
+              />
             </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="legge_104"
-                checked={formData.legge_104}
-                onChange={(e) => handleChange('legge_104', e.target.checked)}
-                className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
-              />
-              <label htmlFor="legge_104" className="text-sm font-medium text-gray-700">
-                Legge 104
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Legge 104 (ore)
               </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.legge_104}
+                onChange={(e) => handleChange('legge_104', parseFloat(e.target.value) || 0)}
+                className="input"
+              />
             </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="ferie"
-                checked={formData.ferie}
-                onChange={(e) => handleChange('ferie', e.target.checked)}
-                className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
-              />
-              <label htmlFor="ferie" className="text-sm font-medium text-gray-700">
-                Ferie
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ferie (ore)
               </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.ferie}
+                onChange={(e) => handleChange('ferie', parseFloat(e.target.value) || 0)}
+                className="input"
+              />
             </div>
           </div>
         </div>

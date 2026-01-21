@@ -128,21 +128,21 @@ export function GrigliaPresenze({
                 TR:{p.ore_trasferte}h
               </span>
             )}
+            {p.malattia > 0 && (
+              <span className="bg-red-100 text-red-800 px-1 rounded text-[9px]">
+                MAL:{p.malattia}h
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap gap-0.5 mt-0.5">
-            {p.malattia && (
-              <span className="bg-red-100 text-red-800 px-1 rounded text-[9px] font-semibold">
-                MAL
+            {p.legge_104 > 0 && (
+              <span className="bg-orange-100 text-orange-800 px-1 rounded text-[9px]">
+                L104:{p.legge_104}h
               </span>
             )}
-            {p.legge_104 && (
-              <span className="bg-orange-100 text-orange-800 px-1 rounded text-[9px] font-semibold">
-                L104
-              </span>
-            )}
-            {p.ferie && (
-              <span className="bg-green-100 text-green-800 px-1 rounded text-[9px] font-semibold">
-                FER
+            {p.ferie > 0 && (
+              <span className="bg-green-100 text-green-800 px-1 rounded text-[9px]">
+                FER:{p.ferie}h
               </span>
             )}
           </div>

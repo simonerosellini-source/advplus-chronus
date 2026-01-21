@@ -2,12 +2,12 @@
 
 ## Campi Aggiunti
 
-Sono stati aggiunti 5 nuovi campi alla tabella `presenze`:
+Sono stati aggiunti 5 nuovi campi alla tabella `presenze`, **tutti di tipo NUMERIC** per tracciare le ore:
 
 1. **straordinari** (numeric) - Ore di straordinario
-2. **malattia** (boolean) - Indica se il giorno è di malattia
-3. **legge_104** (boolean) - Indica se il giorno è per permesso Legge 104
-4. **ferie** (boolean) - Indica se il giorno è di ferie
+2. **malattia** (numeric) - Ore di malattia
+3. **legge_104** (numeric) - Ore permesso Legge 104
+4. **ferie** (numeric) - Ore di ferie
 5. **ore_trasferte** (numeric) - Ore di trasferta
 
 ## Come Applicare la Migrazione
@@ -39,30 +39,38 @@ WHERE table_name = 'presenze'
 ## Modifiche Apportate al Codice
 
 ### 1. Form di Inserimento (ModalPresenza.tsx)
-- Aggiunti campi per inserire straordinari e ore trasferte
-- Aggiunti checkbox per malattia, legge 104 e ferie
+- Aggiunti 5 campi numerici per inserire le ore:
+  - Straordinari (ore)
+  - Ore Trasferte
+  - Malattia (ore)
+  - Legge 104 (ore)
+  - Ferie (ore)
+- Tutti i campi accettano valori decimali con step di 0.5 ore
 
 ### 2. Visualizzazione Griglia (GrigliaPresenze.tsx)
-- Le celle mostrano badge colorati per i nuovi campi:
+- Le celle mostrano badge colorati con le ore per i nuovi campi:
   - **ST:Xh** (blu) - Straordinari
   - **TR:Xh** (viola) - Ore trasferte
-  - **MAL** (rosso) - Malattia
-  - **L104** (arancione) - Legge 104
-  - **FER** (verde) - Ferie
+  - **MAL:Xh** (rosso) - Malattia
+  - **L104:Xh** (arancione) - Legge 104
+  - **FER:Xh** (verde) - Ferie
 
 ### 3. Export Excel (PresenzeView.tsx)
-- L'export Excel include tutti i nuovi campi nella cella di ogni giorno
-- Formato: `7.5h (ST:2h, TR:4h, MAL)`
+- L'export Excel include tutti i nuovi campi con le ore nella cella di ogni giorno
+- Formato: `7.5h (ST:2h, TR:4h, MAL:8h, L104:4h, FER:8h)`
 
 ## Note Importanti
 
-- Tutti i campi sono opzionali e hanno valori di default
+- Tutti i campi sono opzionali e hanno valori di default pari a 0
 - Non sono state modificate le funzionalità esistenti
-- I campi numerici accettano valori decimali con step di 0.5 ore
-- I checkbox sono indipendenti tra loro
+- Tutti i 5 campi sono di tipo NUMERIC e accettano valori decimali con step di 0.5 ore
+- I campi sono indipendenti tra loro e possono essere compilati tutti o solo alcuni
 
 ## Compatibilità
 
 Le modifiche sono retrocompatibili:
-- Le presenze esistenti avranno valori di default (0 per numerici, false per booleani)
+- Le presenze esistenti avranno valori di default pari a 0 per tutti i campi
+- Se i campi malattia, legge_104 e ferie esistevano come booleani, verranno convertiti automaticamente:
+  - `true` → 8 ore (giornata intera)
+  - `false` → 0 ore
 - Il sistema continua a funzionare normalmente per presenze senza questi campi

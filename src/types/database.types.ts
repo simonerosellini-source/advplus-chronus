@@ -28,9 +28,9 @@ export interface Presenza {
   note: string | null;
   ore_totali: number;
   straordinari: number;
-  malattia: boolean;
-  legge_104: boolean;
-  ferie: boolean;
+  malattia: number;
+  legge_104: number;
+  ferie: number;
   ore_trasferte: number;
   created_at: string;
   updated_at: string;
@@ -68,9 +68,9 @@ export interface PresenzaFormData {
   uscita_pomeriggio?: string;
   note?: string;
   straordinari?: number;
-  malattia?: boolean;
-  legge_104?: boolean;
-  ferie?: boolean;
+  malattia?: number;
+  legge_104?: number;
+  ferie?: number;
   ore_trasferte?: number;
 }
 

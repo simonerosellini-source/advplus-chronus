@@ -170,14 +170,14 @@ export function PresenzeView() {
             if (presenza.ore_trasferte > 0) {
               dettagli.push(`TR:${presenza.ore_trasferte}h`);
             }
-            if (presenza.malattia) {
-              dettagli.push('MAL');
+            if (presenza.malattia > 0) {
+              dettagli.push(`MAL:${presenza.malattia}h`);
             }
-            if (presenza.legge_104) {
-              dettagli.push('L104');
+            if (presenza.legge_104 > 0) {
+              dettagli.push(`L104:${presenza.legge_104}h`);
             }
-            if (presenza.ferie) {
-              dettagli.push('FER');
+            if (presenza.ferie > 0) {
+              dettagli.push(`FER:${presenza.ferie}h`);
             }
 
             if (dettagli.length > 0) {
