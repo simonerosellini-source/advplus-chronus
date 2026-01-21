@@ -82,32 +82,38 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
         if (error) throw error;
         showToast('Utente aggiornato con successo', 'success');
       } else {
-        // Crea nuovo utente tramite Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: {
-              nome: formData.nome,
-              cognome: formData.cognome,
-              ruolo: formData.ruolo,
-              legge_104: formData.legge_104,
-              importo_trasferte: formData.importo_trasferte,
-              sede: formData.sede,
-            },
+        // Crea nuovo utente tramite API admin (senza bisogno di conferma email)
+        const response = await fetch('/api/users/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            nome: formData.nome,
+            cognome: formData.cognome,
+            ruolo: formData.ruolo,
+            legge_104: formData.legge_104,
+            importo_trasferte: formData.importo_trasferte,
+            sede: formData.sede,
+          }),
         });
 
-        if (authError) throw authError;
+        const data = await response.json();
 
-        // Il trigger handle_new_user() creerà automaticamente il record nella tabella users
-        showToast('Utente creato con successo. Email di verifica inviata.', 'success');
+        if (!response.ok) {
+          throw new Error(data.error || 'Errore durante la creazione dell\'utente');
+        }
+
+        showToast('Utente creato con successo. Può effettuare il login immediatamente.', 'success');
       }
 
       onClose();
     } catch (error: any) {
       console.error('Errore salvataggio utente:', error);
-      if (error.message?.includes('already registered')) {
+      if (error.message?.toLowerCase().includes('already') ||
+          error.message?.toLowerCase().includes('esiste già')) {
         setErrors({ email: 'Questa email è già registrata' });
         showToast('Email già registrata', 'error');
       } else {
