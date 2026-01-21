@@ -124,6 +124,8 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
       onClose={onClose}
       title={isEdit ? 'Modifica Utente' : 'Nuovo Utente'}
       size="md"
+      closeOnBackdropClick={false}
+      closeOnEsc={false}
     >
       <div className="space-y-6">
         {/* Email */}
