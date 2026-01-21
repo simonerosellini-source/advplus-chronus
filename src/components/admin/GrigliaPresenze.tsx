@@ -62,17 +62,20 @@ export function GrigliaPresenze({
 
   // Determina classe CSS per la cella
   function getCellaClassName(giorno: GiornoCalendario): string {
+    const dataObj = new Date(giorno.data);
+    const isWeekend = dataObj.getDay() === 0 || dataObj.getDay() === 6;
+
     if (giorno.tipo === 'festivo') return 'cella-festivo';
     if (giorno.tipo === 'semifestivo') return 'cella-semifestivo';
     if (giorno.tipo === 'futuro') return 'cella-futuro';
 
     if (giorno.presenza) {
       const ore = giorno.presenza.ore_totali || 0;
-      if (ore >= 7) return 'cella-presente';
-      if (ore > 0) return 'cella-parziale';
+      if (ore >= 7) return isWeekend ? 'cella-presente-weekend' : 'cella-presente';
+      if (ore > 0) return isWeekend ? 'cella-parziale-weekend' : 'cella-parziale';
     }
 
-    return 'cella-assente';
+    return isWeekend ? 'cella-weekend' : 'cella-assente';
   }
 
   // Render contenuto cella

@@ -255,17 +255,23 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
 
           {/* Giorni del mese */}
           {giorni.map((giorno) => {
+            const dataObj = new Date(giorno.data);
+            const isWeekend = dataObj.getDay() === 0 || dataObj.getDay() === 6;
+
             let bgColor = 'bg-white hover:bg-gray-50';
             if (giorno.tipo === 'festivo') bgColor = 'bg-red-50';
             else if (giorno.tipo === 'semifestivo') bgColor = 'bg-orange-50';
             else if (giorno.tipo === 'futuro') bgColor = 'bg-gray-50';
-            else if (giorno.presenza) bgColor = 'bg-green-50';
+            else if (giorno.presenza) bgColor = isWeekend ? 'bg-gray-200 hover:bg-gray-300' : 'bg-green-50';
+            else if (isWeekend) bgColor = 'bg-gray-100 hover:bg-gray-200';
 
             const borderColor =
               giorno.tipo === 'festivo'
                 ? 'border-red-200'
                 : giorno.tipo === 'semifestivo'
                 ? 'border-orange-200'
+                : isWeekend
+                ? 'border-gray-300'
                 : 'border-gray-200';
 
             const isClickable = giorno.tipo !== 'festivo' && giorno.tipo !== 'futuro';
