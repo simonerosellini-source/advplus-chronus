@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Calendar, Clock, TrendingUp } from 'lucide-r
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
+import { ModalPresenza } from '@/components/admin/ModalPresenza';
 import {
   getGiorniMese,
   MESI_ITALIANI,
@@ -27,6 +28,11 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   const [loading, setLoading] = useState(true);
   const [presenze, setPresenze] = useState<Presenza[]>([]);
   const [festivi, setFestivi] = useState<GiornoFestivo[]>([]);
+  const [selectedPresenza, setSelectedPresenza] = useState<{
+    userId: string;
+    data: string;
+    presenza?: Presenza;
+  } | null>(null);
 
   const { showToast } = useToast();
   const supabase = createClient();
@@ -93,6 +99,17 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   function goToCurrentMonth() {
     setAnno(new Date().getFullYear());
     setMese(new Date().getMonth() + 1);
+  }
+
+  // Gestione click su cella per modificare presenza
+  function handleCellClick(data: string, presenza?: Presenza) {
+    setSelectedPresenza({ userId, data, presenza });
+  }
+
+  // Salvataggio presenza
+  async function handleSavePresenza() {
+    await loadData();
+    setSelectedPresenza(null);
   }
 
   if (loading) {
@@ -251,10 +268,19 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                 ? 'border-orange-200'
                 : 'border-gray-200';
 
+            const isClickable = giorno.tipo !== 'festivo' && giorno.tipo !== 'futuro';
+
             return (
               <div
                 key={giorno.data}
-                className={`${bgColor} border ${borderColor} rounded-lg p-3 min-h-[100px] relative`}
+                className={`${bgColor} border ${borderColor} rounded-lg p-3 min-h-[100px] relative ${
+                  isClickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''
+                }`}
+                onClick={() => {
+                  if (isClickable) {
+                    handleCellClick(giorno.data, giorno.presenza);
+                  }
+                }}
               >
                 <div className="font-bold text-primary mb-1">{giorno.giorno}</div>
 
@@ -281,6 +307,42 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                     <div className="font-bold text-primary mt-1">
                       {giorno.presenza.ore_totali.toFixed(1)}h
                     </div>
+
+                    {/* Badge per campi aggiuntivi */}
+                    {(giorno.presenza.straordinari > 0 ||
+                      giorno.presenza.ore_trasferte > 0 ||
+                      giorno.presenza.malattia > 0 ||
+                      giorno.presenza.legge_104 > 0 ||
+                      giorno.presenza.ferie > 0) && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {giorno.presenza.straordinari > 0 && (
+                          <span className="bg-blue-100 text-blue-800 px-1 rounded text-[8px]">
+                            ST:{giorno.presenza.straordinari}h
+                          </span>
+                        )}
+                        {giorno.presenza.ore_trasferte > 0 && (
+                          <span className="bg-purple-100 text-purple-800 px-1 rounded text-[8px]">
+                            TR:{giorno.presenza.ore_trasferte}h
+                          </span>
+                        )}
+                        {giorno.presenza.malattia > 0 && (
+                          <span className="bg-red-100 text-red-800 px-1 rounded text-[8px]">
+                            MAL:{giorno.presenza.malattia}h
+                          </span>
+                        )}
+                        {giorno.presenza.legge_104 > 0 && (
+                          <span className="bg-orange-100 text-orange-800 px-1 rounded text-[8px]">
+                            L104:{giorno.presenza.legge_104}h
+                          </span>
+                        )}
+                        {giorno.presenza.ferie > 0 && (
+                          <span className="bg-green-100 text-green-800 px-1 rounded text-[8px]">
+                            FER:{giorno.presenza.ferie}h
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {giorno.presenza.note && (
                       <div className="text-[10px] text-gray-500 italic">
                         📝 {giorno.presenza.note.substring(0, 30)}
@@ -297,6 +359,17 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
           })}
         </div>
       </div>
+
+      {/* Modal modifica presenza */}
+      {selectedPresenza && (
+        <ModalPresenza
+          userId={selectedPresenza.userId}
+          data={selectedPresenza.data}
+          presenza={selectedPresenza.presenza}
+          onClose={() => setSelectedPresenza(null)}
+          onSave={handleSavePresenza}
+        />
+      )}
     </div>
   );
 }
