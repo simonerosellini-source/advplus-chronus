@@ -22,6 +22,8 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
     cognome: user?.cognome || '',
     ruolo: (user?.ruolo || 'dipendente') as RuoloUtente,
     password: '',
+    legge_104: user?.legge_104 || false,
+    importo_trasferte: user?.importo_trasferte || 0,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -29,7 +31,7 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
   const supabase = createClient();
   const isEdit = !!user;
 
-  function handleChange(field: string, value: string) {
+  function handleChange(field: string, value: string | boolean | number) {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Pulisci errore del campo
     if (errors[field]) {
@@ -67,7 +69,13 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
       if (isEdit) {
         // Modifica utente esistente
         // @ts-expect-error - TypeScript incorrectly infers update parameter type as never
-        const { error } = await supabase.from('users').update({ nome: formData.nome, cognome: formData.cognome, ruolo: formData.ruolo }).eq('id', user.id);
+        const { error } = await supabase.from('users').update({
+          nome: formData.nome,
+          cognome: formData.cognome,
+          ruolo: formData.ruolo,
+          legge_104: formData.legge_104,
+          importo_trasferte: formData.importo_trasferte,
+        }).eq('id', user.id);
 
         if (error) throw error;
         showToast('Utente aggiornato con successo', 'success');
@@ -81,6 +89,8 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
               nome: formData.nome,
               cognome: formData.cognome,
               ruolo: formData.ruolo,
+              legge_104: formData.legge_104,
+              importo_trasferte: formData.importo_trasferte,
             },
           },
         });
@@ -181,6 +191,44 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
           <p className="text-gray-500 text-xs mt-1">
             Gli amministratori hanno accesso completo al sistema
           </p>
+        </div>
+
+        {/* Legge 104 e Importo Trasferte */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="flex items-center space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.legge_104}
+                onChange={(e) => handleChange('legge_104', e.target.checked)}
+                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+              />
+              <span className="text-sm font-medium text-gray-700">
+                Legge 104
+              </span>
+            </label>
+            <p className="text-gray-500 text-xs mt-1 ml-7">
+              Applica benefici previsti dalla Legge 104
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Importo Trasferte (€)
+            </label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={formData.importo_trasferte}
+              onChange={(e) => handleChange('importo_trasferte', parseFloat(e.target.value) || 0)}
+              className={errors.importo_trasferte ? 'input-error' : 'input'}
+              placeholder="0.00"
+            />
+            {errors.importo_trasferte && (
+              <p className="text-red-600 text-xs mt-1">{errors.importo_trasferte}</p>
+            )}
+          </div>
         </div>
 
         {/* Password (solo per nuovi utenti) */}

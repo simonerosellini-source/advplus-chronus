@@ -11,6 +11,8 @@ export interface User {
   ruolo: RuoloUtente;
   data_creazione: string;
   attivo: boolean;
+  legge_104: boolean;
+  importo_trasferte: number;
 }
 
 export interface Presenza {
@@ -45,6 +47,8 @@ export interface UserFormData {
   cognome: string;
   ruolo: RuoloUtente;
   password?: string;
+  legge_104?: boolean;
+  importo_trasferte?: number;
 }
 
 export interface PresenzaFormData {
