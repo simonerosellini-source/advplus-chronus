@@ -54,8 +54,12 @@ export function GrigliaPresenze({
       };
     });
 
-    // Calcola ore totali del mese per l'utente
-    const ore_totali = giorni.reduce((sum, g) => sum + (g.presenza?.ore_totali || 0), 0);
+    // Calcola ore totali del mese per l'utente (presenza + straordinari)
+    const ore_totali = giorni.reduce((sum, g) => {
+      const orePresenza = g.presenza?.ore_totali || 0;
+      const straordinari = g.presenza?.straordinari || 0;
+      return sum + orePresenza + straordinari;
+    }, 0);
 
     return { user, giorni, ore_totali };
   });
