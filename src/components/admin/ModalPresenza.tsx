@@ -50,13 +50,19 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
     loadUserName();
   }, [userId]);
 
-  // Calcola ore totali in tempo reale
-  const oreTotali = calcolaOreTotali(
+  // Calcola ore totali in tempo reale (presenza + tutti i campi aggiuntivi)
+  const orePresenza = calcolaOreTotali(
     formData.ingresso_mattina || null,
     formData.uscita_mattina || null,
     formData.ingresso_pomeriggio || null,
     formData.uscita_pomeriggio || null
   );
+  const oreTotali = orePresenza +
+    (formData.straordinari || 0) +
+    (formData.ore_trasferte || 0) +
+    (formData.malattia || 0) +
+    (formData.legge_104 || 0) +
+    (formData.ferie || 0);
 
   // Gestione cambio campo
   function handleChange(field: string, value: string | boolean | number) {
