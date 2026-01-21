@@ -6,7 +6,7 @@ import { Modal, ModalFooter } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { createClient } from '@/lib/supabase/client';
 import { userSchema } from '@/lib/utils/validations';
-import type { User, RuoloUtente } from '@/types/database.types';
+import type { User, RuoloUtente, Sede } from '@/types/database.types';
 import { useToast } from '@/components/ui/Toast';
 
 interface ModalUtenteProps {
@@ -24,6 +24,7 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
     password: '',
     legge_104: user?.legge_104 || false,
     importo_trasferte: user?.importo_trasferte || 0,
+    sede: (user?.sede || 'Viareggio') as Sede,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -75,6 +76,7 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
           ruolo: formData.ruolo,
           legge_104: formData.legge_104,
           importo_trasferte: formData.importo_trasferte,
+          sede: formData.sede,
         }).eq('id', user.id);
 
         if (error) throw error;
@@ -91,6 +93,7 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
               ruolo: formData.ruolo,
               legge_104: formData.legge_104,
               importo_trasferte: formData.importo_trasferte,
+              sede: formData.sede,
             },
           },
         });
@@ -191,6 +194,25 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
           <p className="text-gray-500 text-xs mt-1">
             Gli amministratori hanno accesso completo al sistema
           </p>
+        </div>
+
+        {/* Sede */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Sede *
+          </label>
+          <select
+            value={formData.sede}
+            onChange={(e) => handleChange('sede', e.target.value)}
+            className={errors.sede ? 'input-error' : 'input'}
+          >
+            <option value="Viareggio">Viareggio</option>
+            <option value="Pietrasanta">Pietrasanta</option>
+            <option value="Massa">Massa</option>
+            <option value="Camaiore">Camaiore</option>
+            <option value="Carrara">Carrara</option>
+          </select>
+          {errors.sede && <p className="text-red-600 text-xs mt-1">{errors.sede}</p>}
         </div>
 
         {/* Legge 104 e Importo Trasferte */}

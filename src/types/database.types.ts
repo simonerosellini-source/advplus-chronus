@@ -2,6 +2,7 @@
 
 export type RuoloUtente = 'amministratore' | 'dipendente' | 'collaboratore';
 export type TipoFestivita = 'festivo' | 'semifestivo';
+export type Sede = 'Viareggio' | 'Pietrasanta' | 'Massa' | 'Camaiore' | 'Carrara';
 
 export interface User {
   id: string;
@@ -13,6 +14,7 @@ export interface User {
   attivo: boolean;
   legge_104: boolean;
   importo_trasferte: number;
+  sede: Sede;
 }
 
 export interface Presenza {
@@ -49,6 +51,7 @@ export interface UserFormData {
   password?: string;
   legge_104?: boolean;
   importo_trasferte?: number;
+  sede?: Sede;
 }
 
 export interface PresenzaFormData {
