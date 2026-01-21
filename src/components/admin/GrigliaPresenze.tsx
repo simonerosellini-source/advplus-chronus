@@ -115,6 +115,37 @@ export function GrigliaPresenze({
             </div>
           )}
           <div className="font-bold mt-0.5">{p.ore_totali.toFixed(1)}h</div>
+
+          {/* Indicatori aggiuntivi */}
+          <div className="flex flex-wrap gap-0.5 mt-1">
+            {p.straordinari > 0 && (
+              <span className="bg-blue-100 text-blue-800 px-1 rounded text-[9px]">
+                ST:{p.straordinari}h
+              </span>
+            )}
+            {p.ore_trasferte > 0 && (
+              <span className="bg-purple-100 text-purple-800 px-1 rounded text-[9px]">
+                TR:{p.ore_trasferte}h
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-0.5 mt-0.5">
+            {p.malattia && (
+              <span className="bg-red-100 text-red-800 px-1 rounded text-[9px] font-semibold">
+                MAL
+              </span>
+            )}
+            {p.legge_104 && (
+              <span className="bg-orange-100 text-orange-800 px-1 rounded text-[9px] font-semibold">
+                L104
+              </span>
+            )}
+            {p.ferie && (
+              <span className="bg-green-100 text-green-800 px-1 rounded text-[9px] font-semibold">
+                FER
+              </span>
+            )}
+          </div>
         </div>
       );
     }

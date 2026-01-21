@@ -159,7 +159,32 @@ export function PresenzeView() {
           } else if (presenza) {
             const ore = presenza.ore_totali || 0;
             totaleOreUtente += ore;
-            row.push(`${ore}h`);
+
+            // Costruisci stringa con tutti i dettagli
+            let cellValue = `${ore}h`;
+            const dettagli = [];
+
+            if (presenza.straordinari > 0) {
+              dettagli.push(`ST:${presenza.straordinari}h`);
+            }
+            if (presenza.ore_trasferte > 0) {
+              dettagli.push(`TR:${presenza.ore_trasferte}h`);
+            }
+            if (presenza.malattia) {
+              dettagli.push('MAL');
+            }
+            if (presenza.legge_104) {
+              dettagli.push('L104');
+            }
+            if (presenza.ferie) {
+              dettagli.push('FER');
+            }
+
+            if (dettagli.length > 0) {
+              cellValue += ` (${dettagli.join(', ')})`;
+            }
+
+            row.push(cellValue);
           } else {
             row.push('-');
           }

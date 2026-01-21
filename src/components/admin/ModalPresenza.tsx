@@ -28,6 +28,11 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
     ingresso_pomeriggio: presenza?.ingresso_pomeriggio ? formatTime(presenza.ingresso_pomeriggio) : '',
     uscita_pomeriggio: presenza?.uscita_pomeriggio ? formatTime(presenza.uscita_pomeriggio) : '',
     note: presenza?.note || '',
+    straordinari: presenza?.straordinari || 0,
+    malattia: presenza?.malattia || false,
+    legge_104: presenza?.legge_104 || false,
+    ferie: presenza?.ferie || false,
+    ore_trasferte: presenza?.ore_trasferte || 0,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -54,7 +59,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
   );
 
   // Gestione cambio campo
-  function handleChange(field: string, value: string) {
+  function handleChange(field: string, value: string | boolean | number) {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Pulisci errore del campo
     if (errors[field]) {
@@ -81,6 +86,11 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
         ingresso_pomeriggio: formData.ingresso_pomeriggio || null,
         uscita_pomeriggio: formData.uscita_pomeriggio || null,
         note: formData.note,
+        straordinari: formData.straordinari,
+        malattia: formData.malattia,
+        legge_104: formData.legge_104,
+        ferie: formData.ferie,
+        ore_trasferte: formData.ore_trasferte,
       };
 
       // Validazione
@@ -98,7 +108,20 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
 
       // Upsert presenza
       // @ts-expect-error - TypeScript incorrectly infers upsert parameter type as never
-      const { error } = await supabase.from('presenze').upsert({ user_id: userId, data, ingresso_mattina: formData.ingresso_mattina || null, uscita_mattina: formData.uscita_mattina || null, ingresso_pomeriggio: formData.ingresso_pomeriggio || null, uscita_pomeriggio: formData.uscita_pomeriggio || null, note: formData.note || null }, { onConflict: 'user_id,data' });
+      const { error } = await supabase.from('presenze').upsert({
+        user_id: userId,
+        data,
+        ingresso_mattina: formData.ingresso_mattina || null,
+        uscita_mattina: formData.uscita_mattina || null,
+        ingresso_pomeriggio: formData.ingresso_pomeriggio || null,
+        uscita_pomeriggio: formData.uscita_pomeriggio || null,
+        note: formData.note || null,
+        straordinari: formData.straordinari,
+        malattia: formData.malattia,
+        legge_104: formData.legge_104,
+        ferie: formData.ferie,
+        ore_trasferte: formData.ore_trasferte,
+      }, { onConflict: 'user_id,data' });
 
       if (error) throw error;
 
@@ -230,6 +253,83 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
             className="input"
             placeholder="Note aggiuntive (opzionale)"
           />
+        </div>
+
+        {/* Campi aggiuntivi */}
+        <div className="space-y-4 border-t pt-4">
+          <h3 className="font-semibold text-gray-900">Informazioni Aggiuntive</h3>
+
+          {/* Grid per campi numerici */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Straordinari (ore)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.straordinari}
+                onChange={(e) => handleChange('straordinari', parseFloat(e.target.value) || 0)}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Ore Trasferte
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.ore_trasferte}
+                onChange={(e) => handleChange('ore_trasferte', parseFloat(e.target.value) || 0)}
+                className="input"
+              />
+            </div>
+          </div>
+
+          {/* Checkbox per assenze/permessi */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="malattia"
+                checked={formData.malattia}
+                onChange={(e) => handleChange('malattia', e.target.checked)}
+                className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+              />
+              <label htmlFor="malattia" className="text-sm font-medium text-gray-700">
+                Malattia
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="legge_104"
+                checked={formData.legge_104}
+                onChange={(e) => handleChange('legge_104', e.target.checked)}
+                className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+              />
+              <label htmlFor="legge_104" className="text-sm font-medium text-gray-700">
+                Legge 104
+              </label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="ferie"
+                checked={formData.ferie}
+                onChange={(e) => handleChange('ferie', e.target.checked)}
+                className="h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary"
+              />
+              <label htmlFor="ferie" className="text-sm font-medium text-gray-700">
+                Ferie
+              </label>
+            </div>
+          </div>
         </div>
 
         {/* Ore totali */}

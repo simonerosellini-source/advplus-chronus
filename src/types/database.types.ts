@@ -27,6 +27,11 @@ export interface Presenza {
   uscita_pomeriggio: string | null;
   note: string | null;
   ore_totali: number;
+  straordinari: number;
+  malattia: boolean;
+  legge_104: boolean;
+  ferie: boolean;
+  ore_trasferte: number;
   created_at: string;
   updated_at: string;
   // Relazioni
@@ -62,6 +67,11 @@ export interface PresenzaFormData {
   ingresso_pomeriggio?: string;
   uscita_pomeriggio?: string;
   note?: string;
+  straordinari?: number;
+  malattia?: boolean;
+  legge_104?: boolean;
+  ferie?: boolean;
+  ore_trasferte?: number;
 }
 
 export interface FestivitaFormData {
