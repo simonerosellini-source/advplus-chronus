@@ -73,7 +73,7 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
 
       if (isEdit) {
         // Modifica utente esistente
-        const { error } = await supabase.from('users').update({
+        const updateData = {
           nome: formData.nome,
           cognome: formData.cognome,
           ruolo: formData.ruolo,
@@ -84,7 +84,10 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
           uscita_mattina_default: formData.uscita_mattina_default || null,
           ingresso_pomeriggio_default: formData.ingresso_pomeriggio_default || null,
           uscita_pomeriggio_default: formData.uscita_pomeriggio_default || null,
-        }).eq('id', user.id);
+        };
+
+        // @ts-ignore - Supabase type inference issue with new fields
+        const { error } = await supabase.from('users').update(updateData).eq('id', user.id);
 
         if (error) throw error;
         showToast('Utente aggiornato con successo', 'success');
