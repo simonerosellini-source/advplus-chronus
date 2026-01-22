@@ -99,7 +99,7 @@ export function TimeInput({
         onBlur={handleHoursBlur}
         placeholder="--"
         disabled={disabled}
-        className={`${combinedClass} w-9 text-center text-sm px-1 py-1`}
+        className={`${combinedClass} w-8 text-center text-xs px-0.5 py-0.5`}
         maxLength={2}
       />
       <span className="text-gray-500 text-xs">:</span>
@@ -107,7 +107,7 @@ export function TimeInput({
         value={localMinutes}
         onChange={handleMinutesChange}
         disabled={disabled}
-        className={`${combinedClass} w-11 text-sm px-0.5 py-1`}
+        className={`${combinedClass} w-10 text-xs px-0 py-0.5`}
       >
         <option value="00">00</option>
         <option value="30">30</option>
