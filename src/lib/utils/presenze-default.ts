@@ -70,10 +70,24 @@ export async function creaPresenzeDefault(
     .gte('data', primoGiorno)
     .lte('data', ultimoGiornoStr);
 
-  const presenzeEsistentiSet = new Set(presenzeEsistenti?.map((p) => p.data) || []);
+  const presenzeEsistentiSet = new Set(presenzeEsistenti?.map((p: { data: string }) => p.data) || []);
 
   // Prepara array di presenze da inserire
-  const presenzeDaInserire = [];
+  const presenzeDaInserire: Array<{
+    user_id: string;
+    data: string;
+    ingresso_mattina: string | null;
+    uscita_mattina: string | null;
+    ingresso_pomeriggio: string | null;
+    uscita_pomeriggio: string | null;
+    ore_totali: number;
+    straordinari: number;
+    malattia: number;
+    legge_104: number;
+    ferie: number;
+    ore_trasferte: number;
+    note: string | null;
+  }> = [];
 
   for (const dataObj of giorniMese) {
     const data = toISODate(dataObj);
