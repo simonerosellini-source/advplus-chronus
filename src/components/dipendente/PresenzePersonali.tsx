@@ -145,8 +145,12 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
     };
   });
 
-  // Calcola statistiche
-  const oreTotaliMese = presenze.reduce((sum, p) => sum + (p.ore_totali || 0), 0);
+  // Calcola statistiche (include presenza + straordinari)
+  const oreTotaliMese = presenze.reduce((sum, p) => {
+    const orePresenza = p.ore_totali || 0;
+    const straordinari = p.straordinari || 0;
+    return sum + orePresenza + straordinari;
+  }, 0);
   const giorniPresenza = presenze.filter((p) => p.ore_totali > 0).length;
   const giorniLavorativi = giorni.filter(
     (g) => g.tipo !== 'festivo' && g.tipo !== 'futuro'
