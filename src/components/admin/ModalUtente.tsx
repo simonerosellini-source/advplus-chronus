@@ -24,8 +24,10 @@ function getDefaultOrariSettimanali(): OrariSettimanali {
     const isWeekend = giorno === 'sabato' || giorno === 'domenica';
     orari[giorno] = {
       abilitato: !isWeekend,
+      mattina_abilitata: !isWeekend,
       ingresso_mattina: isWeekend ? null : '09:00',
       uscita_mattina: isWeekend ? null : '13:00',
+      pomeriggio_abilitato: !isWeekend,
       ingresso_pomeriggio: isWeekend ? null : '15:00',
       uscita_pomeriggio: isWeekend ? null : '18:30',
     };
@@ -251,16 +253,17 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
         </div>
 
         {/* Orario Lavorativo Settimanale */}
-        <div className="border-t pt-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">
+        <div className="border-t pt-4 mt-4">
+          <h3 className="text-sm font-semibold text-gray-800 mb-2">
             Orario Lavorativo Settimanale
           </h3>
-          <p className="text-gray-500 text-xs mb-4">
+          <p className="text-gray-600 text-xs mb-4">
             Configura gli orari per ogni giorno della settimana. Gli orari hanno scatti di 30 minuti (:00 o :30).
-            Puoi configurare part-time o full-time per ogni giorno.
+            <br />
+            Puoi abilitare/disabilitare mattina e pomeriggio separatamente per configurare part-time flessibili.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {(['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato', 'domenica'] as GiornoSettimana[]).map((giorno) => (
               <GiornoOrarioConfig
                 key={giorno}

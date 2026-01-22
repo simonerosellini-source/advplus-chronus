@@ -7,9 +7,11 @@ export type GiornoSettimana = 'lunedi' | 'martedi' | 'mercoledi' | 'giovedi' | '
 
 // Struttura per gli orari di un singolo giorno
 export interface OrarioGiornaliero {
-  abilitato: boolean;
+  abilitato: boolean; // Flag generale per il giorno
+  mattina_abilitata: boolean; // Flag per la sessione mattina
   ingresso_mattina: string | null;
   uscita_mattina: string | null;
+  pomeriggio_abilitato: boolean; // Flag per la sessione pomeriggio
   ingresso_pomeriggio: string | null;
   uscita_pomeriggio: string | null;
 }

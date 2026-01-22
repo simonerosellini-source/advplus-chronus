@@ -169,18 +169,37 @@ export async function creaPresenzeDefault(
     let uscitaPomeriggio: string | null;
 
     if (hasWeeklySchedule && defaultHours.orari_settimanali) {
-      // Usa orari specifici del giorno
+      // Usa orari specifici del giorno considerando le sessioni abilitate
       const orarioGiorno = defaultHours.orari_settimanali[giornoSettimana];
-      ingressoMattina = orarioGiorno.ingresso_mattina;
-      uscitaMattina = orarioGiorno.uscita_mattina;
-      ingressoPomeriggio = orarioGiorno.ingresso_pomeriggio;
-      uscitaPomeriggio = orarioGiorno.uscita_pomeriggio;
+
+      // Mattina: usa gli orari solo se la sessione è abilitata
+      if (orarioGiorno.mattina_abilitata) {
+        ingressoMattina = orarioGiorno.ingresso_mattina;
+        uscitaMattina = orarioGiorno.uscita_mattina;
+      } else {
+        ingressoMattina = null;
+        uscitaMattina = null;
+      }
+
+      // Pomeriggio: usa gli orari solo se la sessione è abilitata
+      if (orarioGiorno.pomeriggio_abilitato) {
+        ingressoPomeriggio = orarioGiorno.ingresso_pomeriggio;
+        uscitaPomeriggio = orarioGiorno.uscita_pomeriggio;
+      } else {
+        ingressoPomeriggio = null;
+        uscitaPomeriggio = null;
+      }
     } else {
       // Fallback: usa orari fissi
       ingressoMattina = defaultHours.ingresso_mattina_default;
       uscitaMattina = defaultHours.uscita_mattina_default;
       ingressoPomeriggio = defaultHours.ingresso_pomeriggio_default;
       uscitaPomeriggio = defaultHours.uscita_pomeriggio_default;
+    }
+
+    // Salta il giorno se non ha né mattina né pomeriggio configurati
+    if (!ingressoMattina && !ingressoPomeriggio) {
+      continue;
     }
 
     const oreTotali = calcolaOreTotali(

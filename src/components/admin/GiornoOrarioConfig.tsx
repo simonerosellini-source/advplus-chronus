@@ -17,6 +17,7 @@ interface GiornoOrarioConfigProps {
 
 /**
  * Componente per configurare gli orari di un singolo giorno della settimana
+ * con possibilità di abilitare/disabilitare mattina e pomeriggio separatamente
  */
 export function GiornoOrarioConfig({
   giorno,
@@ -24,19 +25,52 @@ export function GiornoOrarioConfig({
   onChange,
   errors = {},
 }: GiornoOrarioConfigProps) {
-  const handleToggle = () => {
+  const handleToggleGiorno = () => {
+    const nuovoAbilitato = !orario.abilitato;
     onChange({
       ...orario,
-      abilitato: !orario.abilitato,
-      // Resetta gli orari se disabilito
-      ...(!orario.abilitato
-        ? {}
-        : {
+      abilitato: nuovoAbilitato,
+      // Se disabilito il giorno, disabilito anche mattina e pomeriggio
+      ...(!nuovoAbilitato
+        ? {
+            mattina_abilitata: false,
+            pomeriggio_abilitato: false,
             ingresso_mattina: null,
             uscita_mattina: null,
             ingresso_pomeriggio: null,
             uscita_pomeriggio: null,
-          }),
+          }
+        : {}),
+    });
+  };
+
+  const handleToggleMattina = () => {
+    const nuovoAbilitato = !orario.mattina_abilitata;
+    onChange({
+      ...orario,
+      mattina_abilitata: nuovoAbilitato,
+      // Se disabilito la mattina, resetta gli orari
+      ...(!nuovoAbilitato
+        ? {
+            ingresso_mattina: null,
+            uscita_mattina: null,
+          }
+        : {}),
+    });
+  };
+
+  const handleTogglePomeriggio = () => {
+    const nuovoAbilitato = !orario.pomeriggio_abilitato;
+    onChange({
+      ...orario,
+      pomeriggio_abilitato: nuovoAbilitato,
+      // Se disabilito il pomeriggio, resetta gli orari
+      ...(!nuovoAbilitato
+        ? {
+            ingresso_pomeriggio: null,
+            uscita_pomeriggio: null,
+          }
+        : {}),
     });
   };
 
@@ -51,105 +85,127 @@ export function GiornoOrarioConfig({
   };
 
   return (
-    <div className="border rounded-lg p-4 bg-gray-50">
+    <div className="border rounded-lg p-3 bg-white shadow-sm">
       {/* Header con nome giorno e checkbox */}
-      <div className="flex items-center justify-between mb-3">
-        <label className="flex items-center space-x-3 cursor-pointer">
+      <div className="mb-3 pb-2 border-b">
+        <label className="flex items-center space-x-2 cursor-pointer">
           <input
             type="checkbox"
             checked={orario.abilitato}
-            onChange={handleToggle}
-            className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+            onChange={handleToggleGiorno}
+            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           />
-          <span className="text-sm font-semibold text-gray-700 capitalize">
+          <span className="text-sm font-semibold text-gray-800 capitalize">
             {giorno}
           </span>
         </label>
       </div>
 
-      {/* Sezioni Mattina e Pomeriggio (visibili solo se abilitato) */}
+      {/* Sezioni Mattina e Pomeriggio (visibili solo se giorno abilitato) */}
       {orario.abilitato && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Mattina */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">
-              Mattina
+          <div className="bg-blue-50 rounded p-2">
+            <label className="flex items-center space-x-2 cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={orario.mattina_abilitata}
+                onChange={handleToggleMattina}
+                className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="text-xs font-medium text-gray-700">
+                Mattina
+              </span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">
-                  Ingresso
-                </label>
-                <TimeInput
-                  value={orario.ingresso_mattina || ''}
-                  onChange={(val) => handleChangeField('ingresso_mattina', val)}
-                  error={!!errors.ingresso_mattina}
-                />
-                {errors.ingresso_mattina && (
-                  <p className="text-red-600 text-xs mt-1">
-                    {errors.ingresso_mattina}
-                  </p>
-                )}
+
+            {orario.mattina_abilitata && (
+              <div className="flex items-center gap-2 mt-2">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">
+                    Ingresso
+                  </label>
+                  <TimeInput
+                    value={orario.ingresso_mattina || ''}
+                    onChange={(val) => handleChangeField('ingresso_mattina', val)}
+                    error={!!errors.ingresso_mattina}
+                  />
+                  {errors.ingresso_mattina && (
+                    <p className="text-red-600 text-xs mt-1">
+                      {errors.ingresso_mattina}
+                    </p>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">
+                    Uscita
+                  </label>
+                  <TimeInput
+                    value={orario.uscita_mattina || ''}
+                    onChange={(val) => handleChangeField('uscita_mattina', val)}
+                    error={!!errors.uscita_mattina}
+                  />
+                  {errors.uscita_mattina && (
+                    <p className="text-red-600 text-xs mt-1">
+                      {errors.uscita_mattina}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">
-                  Uscita
-                </label>
-                <TimeInput
-                  value={orario.uscita_mattina || ''}
-                  onChange={(val) => handleChangeField('uscita_mattina', val)}
-                  error={!!errors.uscita_mattina}
-                />
-                {errors.uscita_mattina && (
-                  <p className="text-red-600 text-xs mt-1">
-                    {errors.uscita_mattina}
-                  </p>
-                )}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Pomeriggio */}
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-2">
-              Pomeriggio
+          <div className="bg-orange-50 rounded p-2">
+            <label className="flex items-center space-x-2 cursor-pointer mb-2">
+              <input
+                type="checkbox"
+                checked={orario.pomeriggio_abilitato}
+                onChange={handleTogglePomeriggio}
+                className="w-3.5 h-3.5 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+              />
+              <span className="text-xs font-medium text-gray-700">
+                Pomeriggio
+              </span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">
-                  Ingresso
-                </label>
-                <TimeInput
-                  value={orario.ingresso_pomeriggio || ''}
-                  onChange={(val) =>
-                    handleChangeField('ingresso_pomeriggio', val)
-                  }
-                  error={!!errors.ingresso_pomeriggio}
-                />
-                {errors.ingresso_pomeriggio && (
-                  <p className="text-red-600 text-xs mt-1">
-                    {errors.ingresso_pomeriggio}
-                  </p>
-                )}
+
+            {orario.pomeriggio_abilitato && (
+              <div className="flex items-center gap-2 mt-2">
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">
+                    Ingresso
+                  </label>
+                  <TimeInput
+                    value={orario.ingresso_pomeriggio || ''}
+                    onChange={(val) =>
+                      handleChangeField('ingresso_pomeriggio', val)
+                    }
+                    error={!!errors.ingresso_pomeriggio}
+                  />
+                  {errors.ingresso_pomeriggio && (
+                    <p className="text-red-600 text-xs mt-1">
+                      {errors.ingresso_pomeriggio}
+                    </p>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">
+                    Uscita
+                  </label>
+                  <TimeInput
+                    value={orario.uscita_pomeriggio || ''}
+                    onChange={(val) =>
+                      handleChangeField('uscita_pomeriggio', val)
+                    }
+                    error={!!errors.uscita_pomeriggio}
+                  />
+                  {errors.uscita_pomeriggio && (
+                    <p className="text-red-600 text-xs mt-1">
+                      {errors.uscita_pomeriggio}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">
-                  Uscita
-                </label>
-                <TimeInput
-                  value={orario.uscita_pomeriggio || ''}
-                  onChange={(val) =>
-                    handleChangeField('uscita_pomeriggio', val)
-                  }
-                  error={!!errors.uscita_pomeriggio}
-                />
-                {errors.uscita_pomeriggio && (
-                  <p className="text-red-600 text-xs mt-1">
-                    {errors.uscita_pomeriggio}
-                  </p>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}
