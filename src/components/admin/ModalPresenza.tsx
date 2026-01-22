@@ -10,6 +10,7 @@ import { presenzaSchema } from '@/lib/utils/validations';
 import type { Presenza } from '@/types/database.types';
 import { useToast } from '@/components/ui/Toast';
 import { Trash2 } from 'lucide-react';
+import { TimeInput } from '@/components/ui/TimeInput';
 
 interface ModalPresenzaProps {
   userId: string;
@@ -58,6 +59,16 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
     formData.uscita_pomeriggio || null
   );
   const oreTotali = orePresenza + (formData.straordinari || 0);
+
+  // Formatta ore totali in formato "Xh Ym" (base 60)
+  function formatOreTotali(ore: number): string {
+    const oreIntere = Math.floor(ore);
+    const minuti = Math.round((ore - oreIntere) * 60);
+    if (minuti === 0) {
+      return `${oreIntere}h`;
+    }
+    return `${oreIntere}h ${minuti}m`;
+  }
 
   // Gestione cambio campo
   function handleChange(field: string, value: string | boolean | number) {
@@ -184,11 +195,10 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Ingresso
               </label>
-              <input
-                type="time"
+              <TimeInput
                 value={formData.ingresso_mattina}
-                onChange={(e) => handleChange('ingresso_mattina', e.target.value)}
-                className={errors.ingresso_mattina ? 'input-error' : 'input'}
+                onChange={(val) => handleChange('ingresso_mattina', val)}
+                error={!!errors.ingresso_mattina}
               />
               {errors.ingresso_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_mattina}</p>
@@ -198,11 +208,10 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Uscita
               </label>
-              <input
-                type="time"
+              <TimeInput
                 value={formData.uscita_mattina}
-                onChange={(e) => handleChange('uscita_mattina', e.target.value)}
-                className={errors.uscita_mattina ? 'input-error' : 'input'}
+                onChange={(val) => handleChange('uscita_mattina', val)}
+                error={!!errors.uscita_mattina}
               />
               {errors.uscita_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_mattina}</p>
@@ -217,11 +226,10 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Ingresso
               </label>
-              <input
-                type="time"
+              <TimeInput
                 value={formData.ingresso_pomeriggio}
-                onChange={(e) => handleChange('ingresso_pomeriggio', e.target.value)}
-                className={errors.ingresso_pomeriggio ? 'input-error' : 'input'}
+                onChange={(val) => handleChange('ingresso_pomeriggio', val)}
+                error={!!errors.ingresso_pomeriggio}
               />
               {errors.ingresso_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_pomeriggio}</p>
@@ -231,11 +239,10 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Uscita
               </label>
-              <input
-                type="time"
+              <TimeInput
                 value={formData.uscita_pomeriggio}
-                onChange={(e) => handleChange('uscita_pomeriggio', e.target.value)}
-                className={errors.uscita_pomeriggio ? 'input-error' : 'input'}
+                onChange={(val) => handleChange('uscita_pomeriggio', val)}
+                error={!!errors.uscita_pomeriggio}
               />
               {errors.uscita_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_pomeriggio}</p>
@@ -338,7 +345,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
         {/* Ore totali */}
         <div className="bg-primary text-white rounded-lg p-4 text-center">
           <p className="text-sm opacity-90">Ore Totali</p>
-          <p className="text-3xl font-bold">{oreTotali.toFixed(2)}h</p>
+          <p className="text-3xl font-bold">{formatOreTotali(oreTotali)}</p>
         </div>
 
         {/* Footer con azioni */}
