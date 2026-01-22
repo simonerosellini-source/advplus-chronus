@@ -163,7 +163,7 @@ export async function creaPresenzeDefault(
 
   // Inserisci tutte le presenze in batch se ce ne sono
   if (presenzeDaInserire.length > 0) {
-    const { error } = await supabase.from('presenze').insert(presenzeDaInserire);
+    const { error } = await supabase.from('presenze').insert(presenzeDaInserire as any);
 
     if (error) {
       console.error('Errore creazione presenze di default:', error);
