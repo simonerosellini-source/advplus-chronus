@@ -28,6 +28,12 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   const [loading, setLoading] = useState(true);
   const [presenze, setPresenze] = useState<Presenza[]>([]);
   const [festivi, setFestivi] = useState<GiornoFestivo[]>([]);
+  const [userData, setUserData] = useState<{
+    ingresso_mattina_default: string | null;
+    uscita_mattina_default: string | null;
+    ingresso_pomeriggio_default: string | null;
+    uscita_pomeriggio_default: string | null;
+  } | null>(null);
   const [selectedPresenza, setSelectedPresenza] = useState<{
     userId: string;
     data: string;
@@ -68,8 +74,18 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
 
       if (festiviError) throw festiviError;
 
+      // Carica orari di default dell'utente
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('ingresso_mattina_default, uscita_mattina_default, ingresso_pomeriggio_default, uscita_pomeriggio_default')
+        .eq('id', userId)
+        .single();
+
+      if (userError) throw userError;
+
       setPresenze(presenzeData || []);
       setFestivi(festiviData || []);
+      setUserData(user);
     } catch (error) {
       console.error('Errore caricamento dati:', error);
       showToast('Errore durante il caricamento dei dati', 'error');
@@ -361,8 +377,32 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                   </div>
                 )}
 
-                {!giorno.presenza && giorno.tipo === 'normale' && (
-                  <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
+                {!giorno.presenza && giorno.tipo === 'normale' && userData && (
+                  userData.ingresso_mattina_default || userData.ingresso_pomeriggio_default ? (
+                    <div className="text-xs space-y-1 opacity-50">
+                      {userData.ingresso_mattina_default && (
+                        <div className="text-gray-500">
+                          🌅 {formatTime(userData.ingresso_mattina_default)}-
+                          {formatTime(userData.uscita_mattina_default)}
+                        </div>
+                      )}
+                      {userData.ingresso_pomeriggio_default && (
+                        <div className="text-gray-500">
+                          🌆 {formatTime(userData.ingresso_pomeriggio_default)}-
+                          {formatTime(userData.uscita_pomeriggio_default)}
+                        </div>
+                      )}
+                      <div className="text-[10px] text-gray-400 italic mt-1">
+                        Orario previsto
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
+                  )
+                )}
+
+                {!giorno.presenza && giorno.tipo !== 'normale' && (
+                  <div className="text-xs text-gray-400 text-center mt-4">-</div>
                 )}
               </div>
             );
