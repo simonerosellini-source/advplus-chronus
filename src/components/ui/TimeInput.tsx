@@ -90,7 +90,7 @@ export function TimeInput({
   const combinedClass = `${baseInputClass} ${className}`;
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5">
       <input
         type="text"
         inputMode="numeric"
@@ -99,15 +99,15 @@ export function TimeInput({
         onBlur={handleHoursBlur}
         placeholder="--"
         disabled={disabled}
-        className={`${combinedClass} w-14 text-center`}
+        className={`${combinedClass} w-9 text-center text-sm px-1 py-1`}
         maxLength={2}
       />
-      <span className="text-gray-500 font-medium">:</span>
+      <span className="text-gray-500 text-xs">:</span>
       <select
         value={localMinutes}
         onChange={handleMinutesChange}
         disabled={disabled}
-        className={`${combinedClass} w-16`}
+        className={`${combinedClass} w-11 text-sm px-0.5 py-1`}
       >
         <option value="00">00</option>
         <option value="30">30</option>
