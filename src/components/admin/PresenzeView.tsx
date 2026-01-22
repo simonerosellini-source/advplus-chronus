@@ -59,7 +59,7 @@ export function PresenzeView() {
       // Crea presenze di default per ogni utente con orari configurati
       if (usersData && festiviData) {
         await Promise.all(
-          usersData.map((user) =>
+          usersData.map((user: User) =>
             creaPresenzeDefault(
               user.id,
               anno,
