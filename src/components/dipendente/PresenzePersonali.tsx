@@ -15,6 +15,7 @@ import {
   toISODate,
   isFuturo,
 } from '@/lib/utils/date';
+import { creaPresenzeDefault } from '@/lib/utils/presenze-default';
 import type { Presenza, GiornoFestivo, GiornoCalendario } from '@/types/database.types';
 import { Badge } from '@/components/ui/Badge';
 
@@ -51,20 +52,6 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   async function loadData() {
     setLoading(true);
     try {
-      // Carica presenze del mese
-      const primoGiorno = `${anno}-${String(mese).padStart(2, '0')}-01`;
-      const ultimoGiorno = new Date(anno, mese, 0);
-      const ultimoGiornoStr = `${anno}-${String(mese).padStart(2, '0')}-${ultimoGiorno.getDate()}`;
-
-      const { data: presenzeData, error: presenzeError } = await supabase
-        .from('presenze')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('data', primoGiorno)
-        .lte('data', ultimoGiornoStr);
-
-      if (presenzeError) throw presenzeError;
-
       // Carica festività dell'anno
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
@@ -82,6 +69,25 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
         .single();
 
       if (userError) throw userError;
+
+      // Crea presenze di default per i giorni lavorativi senza presenza
+      if (user) {
+        await creaPresenzeDefault(userId, anno, mese, user, festiviData || []);
+      }
+
+      // Carica presenze del mese (ora include quelle appena create)
+      const primoGiorno = `${anno}-${String(mese).padStart(2, '0')}-01`;
+      const ultimoGiorno = new Date(anno, mese, 0);
+      const ultimoGiornoStr = `${anno}-${String(mese).padStart(2, '0')}-${ultimoGiorno.getDate()}`;
+
+      const { data: presenzeData, error: presenzeError } = await supabase
+        .from('presenze')
+        .select('*')
+        .eq('user_id', userId)
+        .gte('data', primoGiorno)
+        .lte('data', ultimoGiornoStr);
+
+      if (presenzeError) throw presenzeError;
 
       setPresenze(presenzeData || []);
       setFestivi(festiviData || []);
@@ -377,32 +383,10 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                   </div>
                 )}
 
-                {!giorno.presenza && giorno.tipo === 'normale' && userData && (
-                  userData.ingresso_mattina_default || userData.ingresso_pomeriggio_default ? (
-                    <div className="text-xs space-y-1 opacity-50">
-                      {userData.ingresso_mattina_default && (
-                        <div className="text-gray-500">
-                          🌅 {formatTime(userData.ingresso_mattina_default)}-
-                          {formatTime(userData.uscita_mattina_default)}
-                        </div>
-                      )}
-                      {userData.ingresso_pomeriggio_default && (
-                        <div className="text-gray-500">
-                          🌆 {formatTime(userData.ingresso_pomeriggio_default)}-
-                          {formatTime(userData.uscita_pomeriggio_default)}
-                        </div>
-                      )}
-                      <div className="text-[10px] text-gray-400 italic mt-1">
-                        Orario previsto
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
-                  )
-                )}
-
-                {!giorno.presenza && giorno.tipo !== 'normale' && (
-                  <div className="text-xs text-gray-400 text-center mt-4">-</div>
+                {!giorno.presenza && (
+                  <div className="text-xs text-gray-400 text-center mt-4">
+                    {giorno.tipo === 'normale' ? 'Assente' : '-'}
+                  </div>
                 )}
               </div>
             );

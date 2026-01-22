@@ -10,6 +10,7 @@ import { GrigliaPresenze } from './GrigliaPresenze';
 import { ModalPresenza } from './ModalPresenza';
 import { ModalImport } from './ModalImport';
 import { getGiorniMese, MESI_ITALIANI, toISODate } from '@/lib/utils/date';
+import { creaPresenzeDefault } from '@/lib/utils/presenze-default';
 import type { User, Presenza, GiornoFestivo, RigaPresenze } from '@/types/database.types';
 import * as XLSX from 'xlsx';
 
@@ -46,7 +47,36 @@ export function PresenzeView() {
 
       if (usersError) throw usersError;
 
-      // Carica presenze del mese
+      // Carica festività dell'anno
+      const { data: festiviData, error: festiviError } = await supabase
+        .from('giorni_festivi')
+        .select('*')
+        .eq('anno', anno)
+        .order('data', { ascending: true });
+
+      if (festiviError) throw festiviError;
+
+      // Crea presenze di default per ogni utente con orari configurati
+      if (usersData && festiviData) {
+        await Promise.all(
+          usersData.map((user) =>
+            creaPresenzeDefault(
+              user.id,
+              anno,
+              mese,
+              {
+                ingresso_mattina_default: user.ingresso_mattina_default,
+                uscita_mattina_default: user.uscita_mattina_default,
+                ingresso_pomeriggio_default: user.ingresso_pomeriggio_default,
+                uscita_pomeriggio_default: user.uscita_pomeriggio_default,
+              },
+              festiviData
+            )
+          )
+        );
+      }
+
+      // Carica presenze del mese (ora include quelle appena create)
       const primoGiorno = `${anno}-${String(mese).padStart(2, '0')}-01`;
       const ultimoGiorno = new Date(anno, mese, 0);
       const ultimoGiornoStr = `${anno}-${String(mese).padStart(2, '0')}-${ultimoGiorno.getDate()}`;
@@ -58,15 +88,6 @@ export function PresenzeView() {
         .lte('data', ultimoGiornoStr);
 
       if (presenzeError) throw presenzeError;
-
-      // Carica festività dell'anno
-      const { data: festiviData, error: festiviError } = await supabase
-        .from('giorni_festivi')
-        .select('*')
-        .eq('anno', anno)
-        .order('data', { ascending: true });
-
-      if (festiviError) throw festiviError;
 
       setUsers(usersData || []);
       setPresenze(presenzeData || []);

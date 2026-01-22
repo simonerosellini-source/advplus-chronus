@@ -83,7 +83,7 @@ export function GrigliaPresenze({
   }
 
   // Render contenuto cella
-  function renderCellaContent(giorno: GiornoCalendario, user: User): React.ReactNode {
+  function renderCellaContent(giorno: GiornoCalendario): React.ReactNode {
     if (giorno.tipo === 'festivo') {
       return (
         <div className="text-center text-xs">
@@ -157,27 +157,6 @@ export function GrigliaPresenze({
       );
     }
 
-    // Mostra orari di default se configurati
-    if (user.ingresso_mattina_default || user.ingresso_pomeriggio_default) {
-      return (
-        <div className="text-[10px] leading-tight opacity-50">
-          {user.ingresso_mattina_default && (
-            <div className="text-gray-500">
-              {formatTime(user.ingresso_mattina_default)}-{formatTime(user.uscita_mattina_default)}
-            </div>
-          )}
-          {user.ingresso_pomeriggio_default && (
-            <div className="text-gray-500">
-              {formatTime(user.ingresso_pomeriggio_default)}-{formatTime(user.uscita_pomeriggio_default)}
-            </div>
-          )}
-          <div className="text-[9px] text-gray-400 italic mt-0.5">
-            Previsto
-          </div>
-        </div>
-      );
-    }
-
     return <div className="text-center text-xs text-gray-400">-</div>;
   }
 
@@ -220,7 +199,7 @@ export function GrigliaPresenze({
                     }
                   }}
                 >
-                  {renderCellaContent(giorno, riga.user)}
+                  {renderCellaContent(giorno)}
                 </td>
               ))}
               <td className="text-center font-bold bg-gray-50 border-l-2 border-gray-300">
