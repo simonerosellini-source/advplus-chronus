@@ -15,7 +15,6 @@ import {
   toISODate,
   isFuturo,
 } from '@/lib/utils/date';
-import { creaPresenzeDefault } from '@/lib/utils/presenze-default';
 import type { Presenza, GiornoFestivo, GiornoCalendario } from '@/types/database.types';
 import { Badge } from '@/components/ui/Badge';
 
@@ -29,12 +28,6 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   const [loading, setLoading] = useState(true);
   const [presenze, setPresenze] = useState<Presenza[]>([]);
   const [festivi, setFestivi] = useState<GiornoFestivo[]>([]);
-  const [userData, setUserData] = useState<{
-    ingresso_mattina_default: string | null;
-    uscita_mattina_default: string | null;
-    ingresso_pomeriggio_default: string | null;
-    uscita_pomeriggio_default: string | null;
-  } | null>(null);
   const [selectedPresenza, setSelectedPresenza] = useState<{
     userId: string;
     data: string;
@@ -52,30 +45,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   async function loadData() {
     setLoading(true);
     try {
-      // Carica festività dell'anno
-      const { data: festiviData, error: festiviError } = await supabase
-        .from('giorni_festivi')
-        .select('*')
-        .eq('anno', anno)
-        .order('data', { ascending: true });
-
-      if (festiviError) throw festiviError;
-
-      // Carica orari di default dell'utente
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('ingresso_mattina_default, uscita_mattina_default, ingresso_pomeriggio_default, uscita_pomeriggio_default')
-        .eq('id', userId)
-        .single();
-
-      if (userError) throw userError;
-
-      // Crea presenze di default per i giorni lavorativi senza presenza
-      if (user) {
-        await creaPresenzeDefault(userId, anno, mese, user, festiviData || []);
-      }
-
-      // Carica presenze del mese (ora include quelle appena create)
+      // Carica presenze del mese
       const primoGiorno = `${anno}-${String(mese).padStart(2, '0')}-01`;
       const ultimoGiorno = new Date(anno, mese, 0);
       const ultimoGiornoStr = `${anno}-${String(mese).padStart(2, '0')}-${ultimoGiorno.getDate()}`;
@@ -89,9 +59,17 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
 
       if (presenzeError) throw presenzeError;
 
+      // Carica festività dell'anno
+      const { data: festiviData, error: festiviError } = await supabase
+        .from('giorni_festivi')
+        .select('*')
+        .eq('anno', anno)
+        .order('data', { ascending: true });
+
+      if (festiviError) throw festiviError;
+
       setPresenze(presenzeData || []);
       setFestivi(festiviData || []);
-      setUserData(user);
     } catch (error) {
       console.error('Errore caricamento dati:', error);
       showToast('Errore durante il caricamento dei dati', 'error');
@@ -167,12 +145,8 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
     };
   });
 
-  // Calcola statistiche (include presenza + straordinari)
-  const oreTotaliMese = presenze.reduce((sum, p) => {
-    const orePresenza = p.ore_totali || 0;
-    const straordinari = p.straordinari || 0;
-    return sum + orePresenza + straordinari;
-  }, 0);
+  // Calcola statistiche
+  const oreTotaliMese = presenze.reduce((sum, p) => sum + (p.ore_totali || 0), 0);
   const giorniPresenza = presenze.filter((p) => p.ore_totali > 0).length;
   const giorniLavorativi = giorni.filter(
     (g) => g.tipo !== 'festivo' && g.tipo !== 'futuro'
@@ -383,10 +357,8 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                   </div>
                 )}
 
-                {!giorno.presenza && (
-                  <div className="text-xs text-gray-400 text-center mt-4">
-                    {giorno.tipo === 'normale' ? 'Assente' : '-'}
-                  </div>
+                {!giorno.presenza && giorno.tipo === 'normale' && (
+                  <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
                 )}
               </div>
             );

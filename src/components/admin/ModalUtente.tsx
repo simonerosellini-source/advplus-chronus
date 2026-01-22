@@ -25,10 +25,6 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
     legge_104: user?.legge_104 || false,
     importo_trasferte: user?.importo_trasferte || 0,
     sede: (user?.sede || 'Viareggio') as Sede,
-    ingresso_mattina_default: user?.ingresso_mattina_default || '',
-    uscita_mattina_default: user?.uscita_mattina_default || '',
-    ingresso_pomeriggio_default: user?.ingresso_pomeriggio_default || '',
-    uscita_pomeriggio_default: user?.uscita_pomeriggio_default || '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -81,10 +77,6 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
           legge_104: formData.legge_104,
           importo_trasferte: formData.importo_trasferte,
           sede: formData.sede,
-          ingresso_mattina_default: formData.ingresso_mattina_default || null,
-          uscita_mattina_default: formData.uscita_mattina_default || null,
-          ingresso_pomeriggio_default: formData.ingresso_pomeriggio_default || null,
-          uscita_pomeriggio_default: formData.uscita_pomeriggio_default || null,
         }).eq('id', user.id);
 
         if (error) throw error;
@@ -105,10 +97,6 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
             legge_104: formData.legge_104,
             importo_trasferte: formData.importo_trasferte,
             sede: formData.sede,
-            ingresso_mattina_default: formData.ingresso_mattina_default || null,
-            uscita_mattina_default: formData.uscita_mattina_default || null,
-            ingresso_pomeriggio_default: formData.ingresso_pomeriggio_default || null,
-            uscita_pomeriggio_default: formData.uscita_pomeriggio_default || null,
           }),
         });
 
@@ -233,64 +221,6 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
             <option value="Carrara">Carrara</option>
           </select>
           {errors.sede && <p className="text-red-600 text-xs mt-1">{errors.sede}</p>}
-        </div>
-
-        {/* Orario di Lavoro Contrattuale */}
-        <div className="border-t pt-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">
-            Orario di Lavoro Contrattuale (Opzionale)
-          </h3>
-          <p className="text-xs text-gray-500 mb-4">
-            Questi orari saranno usati come valori di default per le presenze
-          </p>
-
-          <div className="grid grid-cols-2 gap-6">
-            {/* Mattina */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-gray-700">Mattina</h4>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Ingresso</label>
-                <input
-                  type="time"
-                  value={formData.ingresso_mattina_default}
-                  onChange={(e) => handleChange('ingresso_mattina_default', e.target.value)}
-                  className="input"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Uscita</label>
-                <input
-                  type="time"
-                  value={formData.uscita_mattina_default}
-                  onChange={(e) => handleChange('uscita_mattina_default', e.target.value)}
-                  className="input"
-                />
-              </div>
-            </div>
-
-            {/* Pomeriggio */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-gray-700">Pomeriggio</h4>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Ingresso</label>
-                <input
-                  type="time"
-                  value={formData.ingresso_pomeriggio_default}
-                  onChange={(e) => handleChange('ingresso_pomeriggio_default', e.target.value)}
-                  className="input"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Uscita</label>
-                <input
-                  type="time"
-                  value={formData.uscita_pomeriggio_default}
-                  onChange={(e) => handleChange('uscita_pomeriggio_default', e.target.value)}
-                  className="input"
-                />
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Legge 104 e Importo Trasferte */}

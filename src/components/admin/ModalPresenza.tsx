@@ -39,41 +39,16 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
   const { showToast } = useToast();
   const supabase = createClient();
 
-  // Carica nome utente e orari di default
+  // Carica nome utente
   useEffect(() => {
-    async function loadUserData() {
-      const { data } = await supabase
-        .from('users')
-        .select('nome, cognome, ingresso_mattina_default, uscita_mattina_default, ingresso_pomeriggio_default, uscita_pomeriggio_default')
-        .eq('id', userId)
-        .single() as {
-          data: {
-            nome: string;
-            cognome: string;
-            ingresso_mattina_default: string | null;
-            uscita_mattina_default: string | null;
-            ingresso_pomeriggio_default: string | null;
-            uscita_pomeriggio_default: string | null;
-          } | null
-        };
-
+    async function loadUserName() {
+      const { data } = await supabase.from('users').select('nome, cognome').eq('id', userId).single() as { data: { nome: string; cognome: string } | null };
       if (data) {
         setUserName(`${data.nome} ${data.cognome}`);
-
-        // Se stiamo creando una nuova presenza (non modificando), usa gli orari di default
-        if (!presenza && data) {
-          setFormData(prev => ({
-            ...prev,
-            ingresso_mattina: data.ingresso_mattina_default ? formatTime(data.ingresso_mattina_default) : '',
-            uscita_mattina: data.uscita_mattina_default ? formatTime(data.uscita_mattina_default) : '',
-            ingresso_pomeriggio: data.ingresso_pomeriggio_default ? formatTime(data.ingresso_pomeriggio_default) : '',
-            uscita_pomeriggio: data.uscita_pomeriggio_default ? formatTime(data.uscita_pomeriggio_default) : '',
-          }));
-        }
       }
     }
-    loadUserData();
-  }, [userId, presenza]);
+    loadUserName();
+  }, [userId]);
 
   // Calcola ore totali in tempo reale (presenza + straordinari)
   const orePresenza = calcolaOreTotali(

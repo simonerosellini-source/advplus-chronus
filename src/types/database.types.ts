@@ -15,10 +15,6 @@ export interface User {
   legge_104: boolean;
   importo_trasferte: number;
   sede: Sede;
-  ingresso_mattina_default: string | null;
-  uscita_mattina_default: string | null;
-  ingresso_pomeriggio_default: string | null;
-  uscita_pomeriggio_default: string | null;
 }
 
 export interface Presenza {
@@ -61,10 +57,6 @@ export interface UserFormData {
   legge_104?: boolean;
   importo_trasferte?: number;
   sede?: Sede;
-  ingresso_mattina_default?: string;
-  uscita_mattina_default?: string;
-  ingresso_pomeriggio_default?: string;
-  uscita_pomeriggio_default?: string;
 }
 
 export interface PresenzaFormData {
