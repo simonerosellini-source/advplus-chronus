@@ -7,10 +7,21 @@ import { LoadingSpinner } from '@/components/ui/Loading';
 import { createClient } from '@/lib/supabase/client';
 import { formatDateIT, calcolaOreTotali, formatTime } from '@/lib/utils/date';
 import { presenzaSchema } from '@/lib/utils/validations';
-import type { Presenza } from '@/types/database.types';
+import type { Presenza, OrariSettimanali, GiornoSettimana } from '@/types/database.types';
 import { useToast } from '@/components/ui/Toast';
 import { Trash2 } from 'lucide-react';
-import { TimeInput } from '@/components/ui/TimeInput';
+import { TimeInputLarge } from '@/components/ui/TimeInputLarge';
+
+// Mappa da day of week (0-6) a nome giorno italiano
+const dayOfWeekToGiorno: Record<number, GiornoSettimana> = {
+  0: 'domenica',
+  1: 'lunedi',
+  2: 'martedi',
+  3: 'mercoledi',
+  4: 'giovedi',
+  5: 'venerdi',
+  6: 'sabato',
+};
 
 interface ModalPresenzaProps {
   userId: string;
@@ -23,6 +34,8 @@ interface ModalPresenzaProps {
 export function ModalPresenza({ userId, data, presenza, onClose, onSave }: ModalPresenzaProps) {
   const [loading, setLoading] = useState(false);
   const [userName, setUserName] = useState('');
+  const [orariSettimanali, setOrariSettimanali] = useState<OrariSettimanali | null>(null);
+  const [orePreviste, setOrePreviste] = useState<number>(0);
   const [formData, setFormData] = useState({
     ingresso_mattina: presenza?.ingresso_mattina ? formatTime(presenza.ingresso_mattina) : '',
     uscita_mattina: presenza?.uscita_mattina ? formatTime(presenza.uscita_mattina) : '',
@@ -40,16 +53,58 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
   const { showToast } = useToast();
   const supabase = createClient();
 
-  // Carica nome utente
+  // Carica nome utente e orari settimanali
   useEffect(() => {
-    async function loadUserName() {
-      const { data } = await supabase.from('users').select('nome, cognome').eq('id', userId).single() as { data: { nome: string; cognome: string } | null };
-      if (data) {
-        setUserName(`${data.nome} ${data.cognome}`);
+    async function loadUserData() {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('nome, cognome, orari_settimanali')
+        .eq('id', userId)
+        .single() as { data: { nome: string; cognome: string; orari_settimanali: OrariSettimanali | null } | null };
+
+      if (userData) {
+        setUserName(`${userData.nome} ${userData.cognome}`);
+        setOrariSettimanali(userData.orari_settimanali);
+
+        // Calcola ore previste per il giorno della settimana
+        if (userData.orari_settimanali) {
+          const dataObj = new Date(data);
+          const dayOfWeek = dataObj.getDay();
+          const giornoSettimana = dayOfWeekToGiorno[dayOfWeek];
+          const orarioGiorno = userData.orari_settimanali[giornoSettimana];
+
+          if (orarioGiorno && orarioGiorno.abilitato) {
+            let orePrevisteGiorno = 0;
+
+            // Calcola ore mattina
+            if (orarioGiorno.mattina_abilitata && orarioGiorno.ingresso_mattina && orarioGiorno.uscita_mattina) {
+              const oreMattina = calcolaOreTotali(
+                orarioGiorno.ingresso_mattina,
+                orarioGiorno.uscita_mattina,
+                null,
+                null
+              );
+              orePrevisteGiorno += oreMattina;
+            }
+
+            // Calcola ore pomeriggio
+            if (orarioGiorno.pomeriggio_abilitato && orarioGiorno.ingresso_pomeriggio && orarioGiorno.uscita_pomeriggio) {
+              const orePomeriggio = calcolaOreTotali(
+                null,
+                null,
+                orarioGiorno.ingresso_pomeriggio,
+                orarioGiorno.uscita_pomeriggio
+              );
+              orePrevisteGiorno += orePomeriggio;
+            }
+
+            setOrePreviste(orePrevisteGiorno);
+          }
+        }
       }
     }
-    loadUserName();
-  }, [userId]);
+    loadUserData();
+  }, [userId, data]);
 
   // Calcola ore totali in tempo reale (presenza + straordinari)
   const orePresenza = calcolaOreTotali(
@@ -59,6 +114,27 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
     formData.uscita_pomeriggio || null
   );
   const oreTotali = orePresenza + (formData.straordinari || 0);
+
+  // Calcola automaticamente straordinari quando cambiano gli orari
+  useEffect(() => {
+    // Solo se abbiamo orari settimanali configurati e ore previste > 0
+    if (orePreviste > 0 && orePresenza > 0) {
+      // Se le ore lavorate superano le ore previste, calcola straordinari
+      if (orePresenza > orePreviste) {
+        const straordinari = orePresenza - orePreviste;
+        setFormData((prev) => ({
+          ...prev,
+          straordinari: Math.round(straordinari * 100) / 100, // Arrotonda a 2 decimali
+        }));
+      } else if (formData.straordinari > 0 && orePresenza <= orePreviste) {
+        // Se le ore lavorate sono <= previste e ci sono straordinari, resettali
+        setFormData((prev) => ({
+          ...prev,
+          straordinari: 0,
+        }));
+      }
+    }
+  }, [formData.ingresso_mattina, formData.uscita_mattina, formData.ingresso_pomeriggio, formData.uscita_pomeriggio, orePreviste, orePresenza]);
 
   // Formatta ore totali in formato "Xh Ym" (base 60)
   function formatOreTotali(ore: number): string {
@@ -195,7 +271,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Ingresso
               </label>
-              <TimeInput
+              <TimeInputLarge
                 value={formData.ingresso_mattina}
                 onChange={(val) => handleChange('ingresso_mattina', val)}
                 error={!!errors.ingresso_mattina}
@@ -208,7 +284,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Uscita
               </label>
-              <TimeInput
+              <TimeInputLarge
                 value={formData.uscita_mattina}
                 onChange={(val) => handleChange('uscita_mattina', val)}
                 error={!!errors.uscita_mattina}
@@ -226,7 +302,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Ingresso
               </label>
-              <TimeInput
+              <TimeInputLarge
                 value={formData.ingresso_pomeriggio}
                 onChange={(val) => handleChange('ingresso_pomeriggio', val)}
                 error={!!errors.ingresso_pomeriggio}
@@ -239,7 +315,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Uscita
               </label>
-              <TimeInput
+              <TimeInputLarge
                 value={formData.uscita_pomeriggio}
                 onChange={(val) => handleChange('uscita_pomeriggio', val)}
                 error={!!errors.uscita_pomeriggio}
