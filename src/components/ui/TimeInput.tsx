@@ -70,10 +70,13 @@ export function TimeInput({
     const newMinutes = e.target.value;
     setLocalMinutes(newMinutes);
 
-    // Aggiorna il valore completo
+    // Aggiorna il valore completo solo se ci sono ore
     if (localHours) {
       const paddedHours = localHours.padStart(2, '0');
       onChange(`${paddedHours}:${newMinutes}`);
+    } else {
+      // Se non ci sono ore, non aggiornare (i minuti da soli non hanno senso)
+      // Mantieni solo il valore locale dei minuti
     }
   };
 
