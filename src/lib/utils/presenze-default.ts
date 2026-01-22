@@ -1,13 +1,25 @@
 import { createClient } from '@/lib/supabase/client';
 import { getGiorniMese, toISODate, isFuturo } from '@/lib/utils/date';
-import type { GiornoFestivo } from '@/types/database.types';
+import type { GiornoFestivo, OrariSettimanali, GiornoSettimana } from '@/types/database.types';
 
 interface UserDefaultHours {
   ingresso_mattina_default: string | null;
   uscita_mattina_default: string | null;
   ingresso_pomeriggio_default: string | null;
   uscita_pomeriggio_default: string | null;
+  orari_settimanali: OrariSettimanali | null;
 }
+
+// Mappa da day of week (0-6) a nome giorno italiano
+const dayOfWeekToGiorno: Record<number, GiornoSettimana> = {
+  0: 'domenica',
+  1: 'lunedi',
+  2: 'martedi',
+  3: 'mercoledi',
+  4: 'giovedi',
+  5: 'venerdi',
+  6: 'sabato',
+};
 
 /**
  * Calcola ore totali da orari
@@ -49,8 +61,11 @@ export async function creaPresenzeDefault(
   defaultHours: UserDefaultHours,
   festivi: GiornoFestivo[]
 ): Promise<void> {
-  // Se l'utente non ha orari di default configurati, non fare nulla
-  if (!defaultHours.ingresso_mattina_default && !defaultHours.ingresso_pomeriggio_default) {
+  // Se l'utente non ha orari configurati (né settimanali né fissi), non fare nulla
+  const hasWeeklySchedule = defaultHours.orari_settimanali !== null;
+  const hasFixedSchedule = defaultHours.ingresso_mattina_default || defaultHours.ingresso_pomeriggio_default;
+
+  if (!hasWeeklySchedule && !hasFixedSchedule) {
     return;
   }
 
@@ -102,10 +117,21 @@ export async function creaPresenzeDefault(
       continue;
     }
 
-    // Salta weekend (sabato = 6, domenica = 0)
+    // Determina il giorno della settimana
     const dayOfWeek = dataObj.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) {
-      continue;
+    const giornoSettimana = dayOfWeekToGiorno[dayOfWeek];
+
+    // Se usa orari settimanali, controlla se il giorno è abilitato
+    if (hasWeeklySchedule && defaultHours.orari_settimanali) {
+      const orarioGiorno = defaultHours.orari_settimanali[giornoSettimana];
+      if (!orarioGiorno.abilitato) {
+        continue; // Salta giorni disabilitati
+      }
+    } else {
+      // Fallback: salta weekend con il vecchio comportamento
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        continue;
+      }
     }
 
     const festivo = festiviMap.get(data);
@@ -136,21 +162,41 @@ export async function creaPresenzeDefault(
       continue;
     }
 
-    // Giorno normale: crea presenza con orari di default
+    // Giorno normale: crea presenza con orari del giorno specifico o fissi
+    let ingressoMattina: string | null;
+    let uscitaMattina: string | null;
+    let ingressoPomeriggio: string | null;
+    let uscitaPomeriggio: string | null;
+
+    if (hasWeeklySchedule && defaultHours.orari_settimanali) {
+      // Usa orari specifici del giorno
+      const orarioGiorno = defaultHours.orari_settimanali[giornoSettimana];
+      ingressoMattina = orarioGiorno.ingresso_mattina;
+      uscitaMattina = orarioGiorno.uscita_mattina;
+      ingressoPomeriggio = orarioGiorno.ingresso_pomeriggio;
+      uscitaPomeriggio = orarioGiorno.uscita_pomeriggio;
+    } else {
+      // Fallback: usa orari fissi
+      ingressoMattina = defaultHours.ingresso_mattina_default;
+      uscitaMattina = defaultHours.uscita_mattina_default;
+      ingressoPomeriggio = defaultHours.ingresso_pomeriggio_default;
+      uscitaPomeriggio = defaultHours.uscita_pomeriggio_default;
+    }
+
     const oreTotali = calcolaOreTotali(
-      defaultHours.ingresso_mattina_default,
-      defaultHours.uscita_mattina_default,
-      defaultHours.ingresso_pomeriggio_default,
-      defaultHours.uscita_pomeriggio_default
+      ingressoMattina,
+      uscitaMattina,
+      ingressoPomeriggio,
+      uscitaPomeriggio
     );
 
     presenzeDaInserire.push({
       user_id: userId,
       data,
-      ingresso_mattina: defaultHours.ingresso_mattina_default,
-      uscita_mattina: defaultHours.uscita_mattina_default,
-      ingresso_pomeriggio: defaultHours.ingresso_pomeriggio_default,
-      uscita_pomeriggio: defaultHours.uscita_pomeriggio_default,
+      ingresso_mattina: ingressoMattina,
+      uscita_mattina: uscitaMattina,
+      ingresso_pomeriggio: ingressoPomeriggio,
+      uscita_pomeriggio: uscitaPomeriggio,
       ore_totali: oreTotali,
       straordinari: 0,
       malattia: 0,

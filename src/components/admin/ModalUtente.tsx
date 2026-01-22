@@ -6,12 +6,32 @@ import { Modal, ModalFooter } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { createClient } from '@/lib/supabase/client';
 import { userSchema } from '@/lib/utils/validations';
-import type { User, RuoloUtente, Sede } from '@/types/database.types';
+import type { User, RuoloUtente, Sede, OrariSettimanali, GiornoSettimana } from '@/types/database.types';
 import { useToast } from '@/components/ui/Toast';
+import { GiornoOrarioConfig } from './GiornoOrarioConfig';
 
 interface ModalUtenteProps {
   user?: User | null;
   onClose: () => void;
+}
+
+// Orari settimanali di default (Lunedì-Venerdì full-time, weekend disabilitato)
+function getDefaultOrariSettimanali(): OrariSettimanali {
+  const giorni: GiornoSettimana[] = ['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato', 'domenica'];
+  const orari: Partial<OrariSettimanali> = {};
+
+  giorni.forEach((giorno) => {
+    const isWeekend = giorno === 'sabato' || giorno === 'domenica';
+    orari[giorno] = {
+      abilitato: !isWeekend,
+      ingresso_mattina: isWeekend ? null : '09:00',
+      uscita_mattina: isWeekend ? null : '13:00',
+      ingresso_pomeriggio: isWeekend ? null : '15:00',
+      uscita_pomeriggio: isWeekend ? null : '18:30',
+    };
+  });
+
+  return orari as OrariSettimanali;
 }
 
 export function ModalUtente({ user, onClose }: ModalUtenteProps) {
@@ -25,11 +45,10 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
     legge_104: user?.legge_104 || false,
     importo_trasferte: user?.importo_trasferte || 0,
     sede: (user?.sede || 'Viareggio') as Sede,
-    ingresso_mattina_default: user?.ingresso_mattina_default || '',
-    uscita_mattina_default: user?.uscita_mattina_default || '',
-    ingresso_pomeriggio_default: user?.ingresso_pomeriggio_default || '',
-    uscita_pomeriggio_default: user?.uscita_pomeriggio_default || '',
   });
+  const [orariSettimanali, setOrariSettimanali] = useState<OrariSettimanali>(
+    user?.orari_settimanali || getDefaultOrariSettimanali()
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const { showToast } = useToast();
@@ -80,10 +99,7 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
           legge_104: formData.legge_104,
           importo_trasferte: formData.importo_trasferte,
           sede: formData.sede,
-          ingresso_mattina_default: formData.ingresso_mattina_default || null,
-          uscita_mattina_default: formData.uscita_mattina_default || null,
-          ingresso_pomeriggio_default: formData.ingresso_pomeriggio_default || null,
-          uscita_pomeriggio_default: formData.uscita_pomeriggio_default || null,
+          orari_settimanali: orariSettimanali,
         };
 
         // @ts-ignore - Supabase type inference issue with new fields
@@ -107,10 +123,7 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
             legge_104: formData.legge_104,
             importo_trasferte: formData.importo_trasferte,
             sede: formData.sede,
-            ingresso_mattina_default: formData.ingresso_mattina_default || null,
-            uscita_mattina_default: formData.uscita_mattina_default || null,
-            ingresso_pomeriggio_default: formData.ingresso_pomeriggio_default || null,
-            uscita_pomeriggio_default: formData.uscita_pomeriggio_default || null,
+            orari_settimanali: orariSettimanali,
           }),
         });
 
@@ -237,83 +250,30 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
           {errors.sede && <p className="text-red-600 text-xs mt-1">{errors.sede}</p>}
         </div>
 
-        {/* Orario Lavorativo */}
+        {/* Orario Lavorativo Settimanale */}
         <div className="border-t pt-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">
-            Orario Lavorativo Predefinito
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            Orario Lavorativo Settimanale
           </h3>
           <p className="text-gray-500 text-xs mb-4">
-            Configura gli orari predefiniti che verranno utilizzati per la creazione automatica delle presenze
+            Configura gli orari per ogni giorno della settimana. Gli orari hanno scatti di 30 minuti (:00 o :30).
+            Puoi configurare part-time o full-time per ogni giorno.
           </p>
 
-          {/* Mattina */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mattina
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Ingresso</label>
-                <input
-                  type="time"
-                  value={formData.ingresso_mattina_default}
-                  onChange={(e) => handleChange('ingresso_mattina_default', e.target.value)}
-                  className={errors.ingresso_mattina_default ? 'input-error' : 'input'}
-                  placeholder="--:--"
-                />
-                {errors.ingresso_mattina_default && (
-                  <p className="text-red-600 text-xs mt-1">{errors.ingresso_mattina_default}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Uscita</label>
-                <input
-                  type="time"
-                  value={formData.uscita_mattina_default}
-                  onChange={(e) => handleChange('uscita_mattina_default', e.target.value)}
-                  className={errors.uscita_mattina_default ? 'input-error' : 'input'}
-                  placeholder="--:--"
-                />
-                {errors.uscita_mattina_default && (
-                  <p className="text-red-600 text-xs mt-1">{errors.uscita_mattina_default}</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Pomeriggio */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Pomeriggio
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Ingresso</label>
-                <input
-                  type="time"
-                  value={formData.ingresso_pomeriggio_default}
-                  onChange={(e) => handleChange('ingresso_pomeriggio_default', e.target.value)}
-                  className={errors.ingresso_pomeriggio_default ? 'input-error' : 'input'}
-                  placeholder="--:--"
-                />
-                {errors.ingresso_pomeriggio_default && (
-                  <p className="text-red-600 text-xs mt-1">{errors.ingresso_pomeriggio_default}</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600 mb-1">Uscita</label>
-                <input
-                  type="time"
-                  value={formData.uscita_pomeriggio_default}
-                  onChange={(e) => handleChange('uscita_pomeriggio_default', e.target.value)}
-                  className={errors.uscita_pomeriggio_default ? 'input-error' : 'input'}
-                  placeholder="--:--"
-                />
-                {errors.uscita_pomeriggio_default && (
-                  <p className="text-red-600 text-xs mt-1">{errors.uscita_pomeriggio_default}</p>
-                )}
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(['lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato', 'domenica'] as GiornoSettimana[]).map((giorno) => (
+              <GiornoOrarioConfig
+                key={giorno}
+                giorno={giorno}
+                orario={orariSettimanali[giorno]}
+                onChange={(nuovoOrario) => {
+                  setOrariSettimanali((prev) => ({
+                    ...prev,
+                    [giorno]: nuovoOrario,
+                  }));
+                }}
+              />
+            ))}
           </div>
         </div>
 

@@ -3,6 +3,21 @@
 export type RuoloUtente = 'amministratore' | 'dipendente' | 'collaboratore';
 export type TipoFestivita = 'festivo' | 'semifestivo';
 export type Sede = 'Viareggio' | 'Pietrasanta' | 'Massa' | 'Camaiore' | 'Carrara';
+export type GiornoSettimana = 'lunedi' | 'martedi' | 'mercoledi' | 'giovedi' | 'venerdi' | 'sabato' | 'domenica';
+
+// Struttura per gli orari di un singolo giorno
+export interface OrarioGiornaliero {
+  abilitato: boolean;
+  ingresso_mattina: string | null;
+  uscita_mattina: string | null;
+  ingresso_pomeriggio: string | null;
+  uscita_pomeriggio: string | null;
+}
+
+// Struttura completa per gli orari settimanali
+export type OrariSettimanali = {
+  [K in GiornoSettimana]: OrarioGiornaliero;
+};
 
 export interface User {
   id: string;
@@ -19,6 +34,7 @@ export interface User {
   uscita_mattina_default: string | null;
   ingresso_pomeriggio_default: string | null;
   uscita_pomeriggio_default: string | null;
+  orari_settimanali: OrariSettimanali | null;
 }
 
 export interface Presenza {
@@ -65,6 +81,7 @@ export interface UserFormData {
   uscita_mattina_default?: string;
   ingresso_pomeriggio_default?: string;
   uscita_pomeriggio_default?: string;
+  orari_settimanali?: OrariSettimanali | null;
 }
 
 export interface PresenzaFormData {
