@@ -41,26 +41,13 @@ export function TimeInput({
     }
   }, [value]);
 
-  const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let newHours = e.target.value.replace(/\D/g, ''); // Solo numeri
-
-    // Limita a 2 cifre
-    if (newHours.length > 2) {
-      newHours = newHours.slice(0, 2);
-    }
-
-    // Valida range 0-23
-    const hoursNum = parseInt(newHours, 10);
-    if (newHours && (hoursNum < 0 || hoursNum > 23)) {
-      return;
-    }
-
+  const handleHoursChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newHours = e.target.value;
     setLocalHours(newHours);
 
     // Aggiorna il valore completo
     if (newHours) {
-      const paddedHours = newHours.padStart(2, '0');
-      onChange(`${paddedHours}:${localMinutes}`);
+      onChange(`${newHours}:${localMinutes}`);
     } else {
       onChange('');
     }
@@ -80,31 +67,27 @@ export function TimeInput({
     }
   };
 
-  const handleHoursBlur = () => {
-    // Padding a 2 cifre quando perde il focus
-    if (localHours && localHours.length === 1) {
-      const paddedHours = localHours.padStart(2, '0');
-      setLocalHours(paddedHours);
-      onChange(`${paddedHours}:${localMinutes}`);
-    }
-  };
-
   const baseInputClass = error ? 'input-error' : 'input';
   const combinedClass = `${baseInputClass} ${className}`;
 
+  // Genera array di ore 00-23
+  const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+
   return (
     <div className="flex items-center gap-0.5">
-      <input
-        type="text"
-        inputMode="numeric"
+      <select
         value={localHours}
         onChange={handleHoursChange}
-        onBlur={handleHoursBlur}
-        placeholder="--"
         disabled={disabled}
-        className={`${combinedClass} w-8 text-center text-xs px-0.5 py-0.5`}
-        maxLength={2}
-      />
+        className={`${combinedClass} w-10 text-xs px-0 py-0.5`}
+      >
+        <option value="">--</option>
+        {hours.map((hour) => (
+          <option key={hour} value={hour}>
+            {hour}
+          </option>
+        ))}
+      </select>
       <span className="text-gray-500 text-xs">:</span>
       <select
         value={localMinutes}
