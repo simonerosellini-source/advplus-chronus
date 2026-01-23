@@ -54,14 +54,38 @@ export function GrigliaPresenze({
       };
     });
 
-    // Calcola ore totali del mese per l'utente
-    // Gli straordinari sono già inclusi in ore_totali, non vanno sommati
-    const ore_totali = giorni.reduce((sum, g) => {
-      const orePresenza = g.presenza?.ore_totali || 0;
-      return sum + orePresenza;
-    }, 0);
+    // Calcola totali mensili dettagliati per l'utente
+    const totaliMensili = giorni.reduce((acc, g) => {
+      if (!g.presenza) return acc;
 
-    return { user, giorni, ore_totali };
+      const p = g.presenza;
+      const orePresenza = p.ore_totali || 0;
+      const straordinari = p.straordinari || 0;
+
+      // Ore ordinarie = ore totali - straordinari
+      const oreOrdinarie = orePresenza - straordinari;
+
+      return {
+        oreOrdinarie: acc.oreOrdinarie + oreOrdinarie,
+        straordinari: acc.straordinari + straordinari,
+        malattia: acc.malattia + (p.malattia || 0),
+        legge_104: acc.legge_104 + (p.legge_104 || 0),
+        ferie: acc.ferie + (p.ferie || 0),
+        trasferte: acc.trasferte + (p.trasferta ? 1 : 0),
+      };
+    }, {
+      oreOrdinarie: 0,
+      straordinari: 0,
+      malattia: 0,
+      legge_104: 0,
+      ferie: 0,
+      trasferte: 0,
+    });
+
+    // Mantieni ore_totali per compatibilità con altri componenti
+    const ore_totali = totaliMensili.oreOrdinarie + totaliMensili.straordinari;
+
+    return { user, giorni, ore_totali, totaliMensili };
   });
 
   // Determina classe CSS per la cella
@@ -127,12 +151,12 @@ export function GrigliaPresenze({
           <div className="flex flex-wrap gap-0.5 mt-1">
             {p.straordinari > 0 && (
               <span className="bg-blue-100 text-blue-800 px-1 rounded text-[9px]">
-                ST:{formatOreTotali(p.straordinari)}
+                STR/SUP:{formatOreTotali(p.straordinari)}
               </span>
             )}
-            {p.ore_trasferte > 0 && (
+            {p.trasferta && (
               <span className="bg-purple-100 text-purple-800 px-1 rounded text-[9px]">
-                TR:{formatOreTotali(p.ore_trasferte)}
+                TR
               </span>
             )}
             {p.malattia > 0 && (
@@ -202,8 +226,37 @@ export function GrigliaPresenze({
                   {renderCellaContent(giorno)}
                 </td>
               ))}
-              <td className="text-center font-bold bg-gray-50 border-l-2 border-gray-300">
-                {formatOreTotali(riga.ore_totali)}
+              <td className="bg-gray-50 border-l-2 border-gray-300 p-2">
+                <div className="text-[10px] space-y-0.5">
+                  <div className="font-bold text-gray-900">
+                    Ord: {formatOreTotali(riga.totaliMensili.oreOrdinarie)}
+                  </div>
+                  {riga.totaliMensili.straordinari > 0 && (
+                    <div className="text-blue-700">
+                      Str/Sup: {formatOreTotali(riga.totaliMensili.straordinari)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.malattia > 0 && (
+                    <div className="text-red-700">
+                      Mal: {formatOreTotali(riga.totaliMensili.malattia)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.legge_104 > 0 && (
+                    <div className="text-orange-700">
+                      L104: {formatOreTotali(riga.totaliMensili.legge_104)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.ferie > 0 && (
+                    <div className="text-green-700">
+                      Fer: {formatOreTotali(riga.totaliMensili.ferie)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.trasferte > 0 && (
+                    <div className="text-purple-700">
+                      Tras: {riga.totaliMensili.trasferte}gg
+                    </div>
+                  )}
+                </div>
               </td>
             </tr>
           ))}

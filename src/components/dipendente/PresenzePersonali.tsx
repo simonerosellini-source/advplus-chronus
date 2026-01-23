@@ -317,19 +317,19 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
 
                     {/* Badge per campi aggiuntivi */}
                     {(giorno.presenza.straordinari > 0 ||
-                      giorno.presenza.ore_trasferte > 0 ||
+                      giorno.presenza.trasferta ||
                       giorno.presenza.malattia > 0 ||
                       giorno.presenza.legge_104 > 0 ||
                       giorno.presenza.ferie > 0) && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {giorno.presenza.straordinari > 0 && (
                           <span className="bg-blue-100 text-blue-800 px-1 rounded text-[8px]">
-                            ST:{giorno.presenza.straordinari}h
+                            STR/SUP:{giorno.presenza.straordinari}h
                           </span>
                         )}
-                        {giorno.presenza.ore_trasferte > 0 && (
+                        {giorno.presenza.trasferta && (
                           <span className="bg-purple-100 text-purple-800 px-1 rounded text-[8px]">
-                            TR:{giorno.presenza.ore_trasferte}h
+                            TR
                           </span>
                         )}
                         {giorno.presenza.malattia > 0 && (

@@ -165,10 +165,10 @@ export function PresenzeView() {
             const dettagli = [];
 
             if (presenza.straordinari > 0) {
-              dettagli.push(`ST:${presenza.straordinari}h`);
+              dettagli.push(`STR/SUP:${presenza.straordinari}h`);
             }
-            if (presenza.ore_trasferte > 0) {
-              dettagli.push(`TR:${presenza.ore_trasferte}h`);
+            if (presenza.trasferta) {
+              dettagli.push(`TR`);
             }
             if (presenza.malattia > 0) {
               dettagli.push(`MAL:${presenza.malattia}h`);

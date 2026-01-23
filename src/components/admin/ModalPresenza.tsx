@@ -46,7 +46,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
     malattia: presenza?.malattia || 0,
     legge_104: presenza?.legge_104 || 0,
     ferie: presenza?.ferie || 0,
-    ore_trasferte: presenza?.ore_trasferte || 0,
+    trasferta: presenza?.trasferta || false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -195,7 +195,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
         malattia: formData.malattia,
         legge_104: formData.legge_104,
         ferie: formData.ferie,
-        ore_trasferte: formData.ore_trasferte,
+        trasferta: formData.trasferta,
       };
 
       // Validazione
@@ -225,7 +225,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
         malattia: formData.malattia,
         legge_104: formData.legge_104,
         ferie: formData.ferie,
-        ore_trasferte: formData.ore_trasferte,
+        trasferta: formData.trasferta,
       }, { onConflict: 'user_id,data' });
 
       if (error) throw error;
@@ -364,7 +364,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Straordinari (ore)
+                Straordinario/Suppletivo (ore)
               </label>
               <input
                 type="number"
@@ -377,18 +377,15 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ore Trasferte
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.trasferta}
+                  onChange={(e) => handleChange('trasferta', e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                Trasferta
               </label>
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                max="24"
-                value={formData.ore_trasferte}
-                onChange={(e) => handleChange('ore_trasferte', parseFloat(e.target.value) || 0)}
-                className="input"
-              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">

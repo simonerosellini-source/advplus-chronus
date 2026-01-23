@@ -53,7 +53,7 @@ export interface Presenza {
   malattia: number;
   legge_104: number;
   ferie: number;
-  ore_trasferte: number;
+  trasferta: boolean;
   created_at: string;
   updated_at: string;
   // Relazioni
@@ -98,7 +98,7 @@ export interface PresenzaFormData {
   malattia?: number;
   legge_104?: number;
   ferie?: number;
-  ore_trasferte?: number;
+  trasferta?: boolean;
 }
 
 export interface FestivitaFormData {
@@ -121,6 +121,14 @@ export interface RigaPresenze {
   user: User;
   giorni: GiornoCalendario[];
   ore_totali: number;
+  totaliMensili: {
+    oreOrdinarie: number;
+    straordinari: number;
+    malattia: number;
+    legge_104: number;
+    ferie: number;
+    trasferte: number; // Numero di giorni con trasferta
+  };
 }
 
 // Statistiche
