@@ -63,7 +63,7 @@ export function PresenzeView() {
       // Include festività globali (sede = null) e festività delle sedi degli utenti
       const sediUtenti: string[] = [];
       if (usersData) {
-        usersData.forEach(u => {
+        (usersData as User[]).forEach(u => {
           if (u.sede) sediUtenti.push(u.sede);
         });
       }
