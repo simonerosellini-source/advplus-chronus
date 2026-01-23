@@ -106,15 +106,16 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
     loadUserData();
   }, [userId, data]);
 
-  // Calcola ore totali in tempo reale (solo ore di presenza)
+  // Calcola ore totali in tempo reale
   // Gli straordinari sono già inclusi nelle ore di presenza, non vanno sommati
+  // Le assenze (malattia, legge 104, ferie) vanno sottratte dalle ore di presenza
   const orePresenza = calcolaOreTotali(
     formData.ingresso_mattina || null,
     formData.uscita_mattina || null,
     formData.ingresso_pomeriggio || null,
     formData.uscita_pomeriggio || null
   );
-  const oreTotali = orePresenza;
+  const oreTotali = orePresenza - (formData.malattia || 0) - (formData.legge_104 || 0) - (formData.ferie || 0);
 
   // Calcola automaticamente straordinari quando cambiano gli orari
   useEffect(() => {

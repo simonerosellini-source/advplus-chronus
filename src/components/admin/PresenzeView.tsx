@@ -157,11 +157,13 @@ export function PresenzeView() {
           if (festivo) {
             row.push(festivo.tipo === 'festivo' ? 'FEST' : 'SEMI');
           } else if (presenza) {
-            const ore = presenza.ore_totali || 0;
-            totaleOreUtente += ore;
+            const orePresenza = presenza.ore_totali || 0;
+            const assenze = (presenza.malattia || 0) + (presenza.legge_104 || 0) + (presenza.ferie || 0);
+            const oreEffettive = orePresenza - assenze;
+            totaleOreUtente += oreEffettive;
 
             // Costruisci stringa con tutti i dettagli
-            let cellValue = `${ore}h`;
+            let cellValue = formatOreTotali(oreEffettive);
             const dettagli = [];
 
             if (presenza.straordinari > 0) {

@@ -56,9 +56,12 @@ export function GrigliaPresenze({
 
     // Calcola ore totali del mese per l'utente
     // Gli straordinari sono già inclusi in ore_totali, non vanno sommati
+    // Le assenze (malattia, legge 104, ferie) vanno sottratte
     const ore_totali = giorni.reduce((sum, g) => {
-      const orePresenza = g.presenza?.ore_totali || 0;
-      return sum + orePresenza;
+      if (!g.presenza) return sum;
+      const orePresenza = g.presenza.ore_totali || 0;
+      const assenze = (g.presenza.malattia || 0) + (g.presenza.legge_104 || 0) + (g.presenza.ferie || 0);
+      return sum + orePresenza - assenze;
     }, 0);
 
     return { user, giorni, ore_totali };
@@ -109,6 +112,8 @@ export function GrigliaPresenze({
 
     if (giorno.presenza) {
       const p = giorno.presenza;
+      // Calcola ore effettive sottraendo assenze
+      const oreEffettive = p.ore_totali - (p.malattia || 0) - (p.legge_104 || 0) - (p.ferie || 0);
       return (
         <div className="text-[10px] leading-tight">
           {p.ingresso_mattina && (
@@ -121,7 +126,7 @@ export function GrigliaPresenze({
               {formatTime(p.ingresso_pomeriggio)}-{formatTime(p.uscita_pomeriggio)}
             </div>
           )}
-          <div className="font-bold mt-0.5">{formatOreTotali(p.ore_totali)}</div>
+          <div className="font-bold mt-0.5">{formatOreTotali(oreEffettive)}</div>
 
           {/* Indicatori aggiuntivi */}
           <div className="flex flex-wrap gap-0.5 mt-1">
