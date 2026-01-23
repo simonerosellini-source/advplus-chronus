@@ -16,7 +16,7 @@ import {
   isFuturo,
   formatOreTotali,
 } from '@/lib/utils/date';
-import type { Presenza, GiornoFestivo, GiornoCalendario } from '@/types/database.types';
+import type { User, Presenza, GiornoFestivo, GiornoCalendario } from '@/types/database.types';
 import { Badge } from '@/components/ui/Badge';
 
 interface PresenzePersonaliProps {
@@ -75,7 +75,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
-        .or(`sede.is.null,sede.eq.${userData.sede}`)
+        .or(`sede.is.null,sede.eq.${(userData as Pick<User, 'sede'>).sede}`)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;
