@@ -24,10 +24,10 @@ export function TimeInput({
   error = false,
 }: TimeInputProps) {
   // Separa ore e minuti dal valore
-  const [hours, minutes] = value && value.includes(':') ? value.split(':') : ['', ''];
+  const [initialHours, initialMinutes] = value && value.includes(':') ? value.split(':') : ['', ''];
 
-  const [localHours, setLocalHours] = useState(hours || '');
-  const [localMinutes, setLocalMinutes] = useState(minutes || '00');
+  const [localHours, setLocalHours] = useState(initialHours || '');
+  const [localMinutes, setLocalMinutes] = useState(initialMinutes || '00');
 
   // Sincronizza con prop value quando cambia esternamente
   useEffect(() => {
