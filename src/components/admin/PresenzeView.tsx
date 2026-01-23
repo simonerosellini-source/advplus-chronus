@@ -62,7 +62,7 @@ export function PresenzeView() {
       // Carica festività dell'anno
       // Include festività globali (sede = null) e festività delle sedi degli utenti
       const sediUtenti = usersData
-        ? [...new Set(usersData.map(u => u.sede).filter((sede): sede is string => Boolean(sede)))]
+        ? [...new Set(usersData.filter(u => Boolean(u.sede)).map(u => u.sede as string))]
         : [];
 
       const { data: festiviData, error: festiviError } = await supabase
