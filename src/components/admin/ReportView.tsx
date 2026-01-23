@@ -80,12 +80,7 @@ export function ReportView() {
     // Statistiche per utente
     const stats: UserStats[] = usersData.map(user => {
       const userPresenze = presenzeData.filter(p => p.user_id === user.id);
-      // Sottrai assenze dalle ore totali
-      const totaleOre = userPresenze.reduce((sum, p) => {
-        const orePresenza = p.ore_totali || 0;
-        const assenze = (p.malattia || 0) + (p.legge_104 || 0) + (p.ferie || 0);
-        return sum + orePresenza - assenze;
-      }, 0);
+      const totaleOre = userPresenze.reduce((sum, p) => sum + (p.ore_totali || 0), 0);
       const giorniPresenza = userPresenze.length;
       const mediaOre = giorniPresenza > 0 ? totaleOre / giorniPresenza : 0;
 
@@ -108,12 +103,7 @@ export function ReportView() {
         return data.getFullYear() === anno && data.getMonth() + 1 === mese;
       });
 
-      // Sottrai assenze dalle ore totali
-      const totaleOre = presenzeMonth.reduce((sum, p) => {
-        const orePresenza = p.ore_totali || 0;
-        const assenze = (p.malattia || 0) + (p.legge_104 || 0) + (p.ferie || 0);
-        return sum + orePresenza - assenze;
-      }, 0);
+      const totaleOre = presenzeMonth.reduce((sum, p) => sum + (p.ore_totali || 0), 0);
       const giorniLavorativi = new Set(presenzeMonth.map(p => p.data)).size;
 
       monthly.push({

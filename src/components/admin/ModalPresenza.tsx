@@ -106,16 +106,15 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
     loadUserData();
   }, [userId, data]);
 
-  // Calcola ore totali in tempo reale
+  // Calcola ore totali in tempo reale (solo ore effettivamente lavorate)
   // Gli straordinari sono già inclusi nelle ore di presenza, non vanno sommati
-  // Le assenze (malattia, legge 104, ferie) vanno sottratte dalle ore di presenza
   const orePresenza = calcolaOreTotali(
     formData.ingresso_mattina || null,
     formData.uscita_mattina || null,
     formData.ingresso_pomeriggio || null,
     formData.uscita_pomeriggio || null
   );
-  const oreTotali = orePresenza - (formData.malattia || 0) - (formData.legge_104 || 0) - (formData.ferie || 0);
+  const oreTotali = orePresenza;
 
   // Calcola automaticamente straordinari quando cambiano gli orari
   useEffect(() => {
@@ -137,6 +136,36 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
       }
     }
   }, [formData.ingresso_mattina, formData.uscita_mattina, formData.ingresso_pomeriggio, formData.uscita_pomeriggio, orePreviste, orePresenza]);
+
+  // Validazione orario vs piano settimanale
+  const assenzeValid = { malattia: false, legge_104: false, ferie: false };
+  let canSave = true;
+
+  if (orePreviste > 0 && orePresenza > 0) {
+    const totaleAssenze = (formData.malattia || 0) + (formData.legge_104 || 0) + (formData.ferie || 0);
+
+    if (orePresenza < orePreviste) {
+      // Ore lavorate < ore previste: serve giustificazione con assenze
+      if (orePresenza + totaleAssenze !== orePreviste) {
+        // Evidenzia i campi assenze e disabilita salva
+        assenzeValid.malattia = true;
+        assenzeValid.legge_104 = true;
+        assenzeValid.ferie = true;
+        canSave = false;
+      }
+    } else if (orePresenza > orePreviste && totaleAssenze > 0) {
+      // Ore lavorate > ore previste E ci sono assenze: incoerenza
+      // Verifica: ore lavorate - straordinari dovrebbero essere = ore previste
+      const oreSenzaStraordinari = orePresenza - (formData.straordinari || 0);
+      if (oreSenzaStraordinari !== orePreviste) {
+        // Evidenzia i campi assenze
+        if (formData.malattia > 0) assenzeValid.malattia = true;
+        if (formData.legge_104 > 0) assenzeValid.legge_104 = true;
+        if (formData.ferie > 0) assenzeValid.ferie = true;
+        canSave = false;
+      }
+    }
+  }
 
   // Gestione cambio campo
   function handleChange(field: string, value: string | boolean | number) {
@@ -376,7 +405,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 max="24"
                 value={formData.malattia}
                 onChange={(e) => handleChange('malattia', parseFloat(e.target.value) || 0)}
-                className="input"
+                className={assenzeValid.malattia ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
               />
             </div>
             <div>
@@ -390,7 +419,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 max="24"
                 value={formData.legge_104}
                 onChange={(e) => handleChange('legge_104', parseFloat(e.target.value) || 0)}
-                className="input"
+                className={assenzeValid.legge_104 ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
               />
             </div>
             <div>
@@ -404,7 +433,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 max="24"
                 value={formData.ferie}
                 onChange={(e) => handleChange('ferie', parseFloat(e.target.value) || 0)}
-                className="input"
+                className={assenzeValid.ferie ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
               />
             </div>
           </div>
@@ -415,6 +444,28 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
           <p className="text-sm opacity-90">Ore Totali</p>
           <p className="text-3xl font-bold">{formatOreTotali(oreTotali)}</p>
         </div>
+
+        {/* Messaggi di validazione */}
+        {!canSave && orePreviste > 0 && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-800">
+                  {orePresenza < orePreviste ? (
+                    <>Le ore lavorate ({formatOreTotali(orePresenza)}) sono inferiori alle ore previste ({formatOreTotali(orePreviste)}). Compilare malattia, legge 104 o ferie per giustificare la differenza.</>
+                  ) : (
+                    <>Le ore lavorate ({formatOreTotali(orePresenza)}) sono superiori alle ore previste ({formatOreTotali(orePreviste)}) e sono presenti assenze. Rimuovere le assenze o verificare gli straordinari.</>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer con azioni */}
         <ModalFooter>
@@ -431,7 +482,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
           <button onClick={onClose} disabled={loading} className="btn-outline">
             Annulla
           </button>
-          <button onClick={handleSave} disabled={loading} className="btn-primary">
+          <button onClick={handleSave} disabled={loading || !canSave} className="btn-primary">
             {loading ? (
               <>
                 <LoadingSpinner className="h-4 w-4 mr-2" />

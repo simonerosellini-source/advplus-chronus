@@ -147,12 +147,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   });
 
   // Calcola statistiche
-  // Le ore totali devono sottrarre le assenze (malattia, legge 104, ferie)
-  const oreTotaliMese = presenze.reduce((sum, p) => {
-    const orePresenza = p.ore_totali || 0;
-    const assenze = (p.malattia || 0) + (p.legge_104 || 0) + (p.ferie || 0);
-    return sum + orePresenza - assenze;
-  }, 0);
+  const oreTotaliMese = presenze.reduce((sum, p) => sum + (p.ore_totali || 0), 0);
   const giorniPresenza = presenze.filter((p) => p.ore_totali > 0).length;
   const giorniLavorativi = giorni.filter(
     (g) => g.tipo !== 'festivo' && g.tipo !== 'futuro'
@@ -302,26 +297,23 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                   </div>
                 )}
 
-                {giorno.presenza && (() => {
-                  // Calcola ore effettive sottraendo assenze
-                  const oreEffettive = giorno.presenza.ore_totali - (giorno.presenza.malattia || 0) - (giorno.presenza.legge_104 || 0) - (giorno.presenza.ferie || 0);
-                  return (
-                    <div className="text-xs space-y-1">
-                      {giorno.presenza.ingresso_mattina && (
-                        <div className="text-gray-700">
-                          🌅 {formatTime(giorno.presenza.ingresso_mattina)}-
-                          {formatTime(giorno.presenza.uscita_mattina)}
-                        </div>
-                      )}
-                      {giorno.presenza.ingresso_pomeriggio && (
-                        <div className="text-gray-700">
-                          🌆 {formatTime(giorno.presenza.ingresso_pomeriggio)}-
-                          {formatTime(giorno.presenza.uscita_pomeriggio)}
-                        </div>
-                      )}
-                      <div className="font-bold text-primary mt-1">
-                        {formatOreTotali(oreEffettive)}
+                {giorno.presenza && (
+                  <div className="text-xs space-y-1">
+                    {giorno.presenza.ingresso_mattina && (
+                      <div className="text-gray-700">
+                        🌅 {formatTime(giorno.presenza.ingresso_mattina)}-
+                        {formatTime(giorno.presenza.uscita_mattina)}
                       </div>
+                    )}
+                    {giorno.presenza.ingresso_pomeriggio && (
+                      <div className="text-gray-700">
+                        🌆 {formatTime(giorno.presenza.ingresso_pomeriggio)}-
+                        {formatTime(giorno.presenza.uscita_pomeriggio)}
+                      </div>
+                    )}
+                    <div className="font-bold text-primary mt-1">
+                      {formatOreTotali(giorno.presenza.ore_totali)}
+                    </div>
 
                     {/* Badge per campi aggiuntivi */}
                     {(giorno.presenza.straordinari > 0 ||
@@ -358,14 +350,13 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                       </div>
                     )}
 
-                      {giorno.presenza.note && (
-                        <div className="text-[10px] text-gray-500 italic">
-                          📝 {giorno.presenza.note.substring(0, 30)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                    {giorno.presenza.note && (
+                      <div className="text-[10px] text-gray-500 italic">
+                        📝 {giorno.presenza.note.substring(0, 30)}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {!giorno.presenza && giorno.tipo === 'normale' && (
                   <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
