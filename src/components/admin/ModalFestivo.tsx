@@ -160,7 +160,7 @@ export function ModalFestivo({ onClose }: ModalFestivoProps) {
           </select>
           {errors.sede && <p className="text-red-600 text-xs mt-1">{errors.sede}</p>}
           <p className="text-gray-500 text-xs mt-1">
-            Seleziona "Tutte le sedi" per festività nazionali o una sede specifica per festività locali.
+            Seleziona &quot;Tutte le sedi&quot; per festività nazionali o una sede specifica per festività locali.
           </p>
         </div>
 
