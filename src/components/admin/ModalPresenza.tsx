@@ -155,15 +155,11 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
       }
     } else if (orePresenza > orePreviste && totaleAssenze > 0) {
       // Ore lavorate > ore previste E ci sono assenze: incoerenza
-      // Verifica: ore lavorate - straordinari dovrebbero essere = ore previste
-      const oreSenzaStraordinari = orePresenza - (formData.straordinari || 0);
-      if (oreSenzaStraordinari !== orePreviste) {
-        // Evidenzia i campi assenze
-        if (formData.malattia > 0) assenzeValid.malattia = true;
-        if (formData.legge_104 > 0) assenzeValid.legge_104 = true;
-        if (formData.ferie > 0) assenzeValid.ferie = true;
-        canSave = false;
-      }
+      // Non puoi avere straordinari e assenze contemporaneamente
+      if (formData.malattia > 0) assenzeValid.malattia = true;
+      if (formData.legge_104 > 0) assenzeValid.legge_104 = true;
+      if (formData.ferie > 0) assenzeValid.ferie = true;
+      canSave = false;
     }
   }
 
