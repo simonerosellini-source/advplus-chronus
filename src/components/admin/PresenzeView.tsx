@@ -60,10 +60,14 @@ export function PresenzeView() {
       if (presenzeError) throw presenzeError;
 
       // Carica festività dell'anno
+      // Include festività globali (sede = null) e festività delle sedi degli utenti
+      const sediUtenti = [...new Set(usersData?.map(u => u.sede).filter(Boolean))];
+
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
+        .or(`sede.is.null,sede.in.(${sediUtenti.join(',')})`)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;

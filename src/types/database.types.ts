@@ -66,6 +66,7 @@ export interface GiornoFestivo {
   nome: string;
   tipo: TipoFestivita;
   anno: number;
+  sede: Sede | null; // null = festività globale valida per tutte le sedi
   created_at: string;
 }
 
@@ -105,6 +106,7 @@ export interface FestivitaFormData {
   data: string;
   nome: string;
   tipo: TipoFestivita;
+  sede?: Sede | null; // null = festività globale valida per tutte le sedi
   ricorrente?: boolean;
 }
 

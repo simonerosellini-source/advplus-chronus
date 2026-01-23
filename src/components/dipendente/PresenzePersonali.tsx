@@ -60,11 +60,22 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
 
       if (presenzeError) throw presenzeError;
 
+      // Carica sede dell'utente
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('sede')
+        .eq('id', userId)
+        .single();
+
+      if (userError) throw userError;
+
       // Carica festività dell'anno
+      // Include festività globali (sede = null) e festività della sede dell'utente
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
+        .or(`sede.is.null,sede.eq.${userData.sede}`)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;
