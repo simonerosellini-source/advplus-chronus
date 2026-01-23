@@ -377,15 +377,18 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
               />
             </div>
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Trasferta
+              </label>
+              <div className="input flex items-center cursor-pointer h-[42px]" onClick={() => handleChange('trasferta', !formData.trasferta)}>
                 <input
                   type="checkbox"
                   checked={formData.trasferta}
                   onChange={(e) => handleChange('trasferta', e.target.checked)}
-                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary"
+                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                 />
-                Trasferta
-              </label>
+                <span className="ml-2 text-gray-700">Presente</span>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
