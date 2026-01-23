@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/Toast';
 import { GrigliaPresenze } from './GrigliaPresenze';
 import { ModalPresenza } from './ModalPresenza';
 import { ModalImport } from './ModalImport';
-import { getGiorniMese, MESI_ITALIANI, toISODate } from '@/lib/utils/date';
+import { getGiorniMese, MESI_ITALIANI, toISODate, formatOreTotali } from '@/lib/utils/date';
 import type { User, Presenza, GiornoFestivo, RigaPresenze } from '@/types/database.types';
 import * as XLSX from 'xlsx';
 
@@ -190,7 +190,7 @@ export function PresenzeView() {
           }
         });
 
-        row.push(`${totaleOreUtente.toFixed(1)}h`);
+        row.push(formatOreTotali(totaleOreUtente));
         excelData.push(row);
       });
 

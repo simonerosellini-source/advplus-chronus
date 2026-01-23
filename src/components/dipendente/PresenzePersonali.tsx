@@ -14,6 +14,7 @@ import {
   formatDateIT,
   toISODate,
   isFuturo,
+  formatOreTotali,
 } from '@/lib/utils/date';
 import type { Presenza, GiornoFestivo, GiornoCalendario } from '@/types/database.types';
 import { Badge } from '@/components/ui/Badge';
@@ -167,7 +168,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
             </div>
             <div>
               <p className="text-sm text-gray-600">Ore Totali</p>
-              <p className="text-2xl font-bold text-primary">{oreTotaliMese.toFixed(1)}h</p>
+              <p className="text-2xl font-bold text-primary">{formatOreTotali(oreTotaliMese)}</p>
             </div>
           </div>
         </div>
@@ -203,7 +204,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
             </div>
             <div>
               <p className="text-sm text-gray-600">Media Ore/Giorno</p>
-              <p className="text-2xl font-bold text-secondary">{mediaOreGiornaliere.toFixed(1)}h</p>
+              <p className="text-2xl font-bold text-secondary">{formatOreTotali(mediaOreGiornaliere)}</p>
             </div>
           </div>
         </div>
@@ -311,7 +312,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                       </div>
                     )}
                     <div className="font-bold text-primary mt-1">
-                      {giorno.presenza.ore_totali.toFixed(1)}h
+                      {formatOreTotali(giorno.presenza.ore_totali)}
                     </div>
 
                     {/* Badge per campi aggiuntivi */}

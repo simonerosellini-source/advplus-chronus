@@ -1,7 +1,7 @@
 'use client';
 
 // Componente Griglia Presenze tipo Excel
-import { getGiorniMese, formatTime, toISODate, isFuturo } from '@/lib/utils/date';
+import { getGiorniMese, formatTime, toISODate, isFuturo, formatOreTotali } from '@/lib/utils/date';
 import type { User, Presenza, GiornoFestivo, GiornoCalendario, RigaPresenze } from '@/types/database.types';
 
 interface GrigliaPresenzeProps {
@@ -121,35 +121,35 @@ export function GrigliaPresenze({
               {formatTime(p.ingresso_pomeriggio)}-{formatTime(p.uscita_pomeriggio)}
             </div>
           )}
-          <div className="font-bold mt-0.5">{p.ore_totali.toFixed(1)}h</div>
+          <div className="font-bold mt-0.5">{formatOreTotali(p.ore_totali)}</div>
 
           {/* Indicatori aggiuntivi */}
           <div className="flex flex-wrap gap-0.5 mt-1">
             {p.straordinari > 0 && (
               <span className="bg-blue-100 text-blue-800 px-1 rounded text-[9px]">
-                ST:{p.straordinari}h
+                ST:{formatOreTotali(p.straordinari)}
               </span>
             )}
             {p.ore_trasferte > 0 && (
               <span className="bg-purple-100 text-purple-800 px-1 rounded text-[9px]">
-                TR:{p.ore_trasferte}h
+                TR:{formatOreTotali(p.ore_trasferte)}
               </span>
             )}
             {p.malattia > 0 && (
               <span className="bg-red-100 text-red-800 px-1 rounded text-[9px]">
-                MAL:{p.malattia}h
+                MAL:{formatOreTotali(p.malattia)}
               </span>
             )}
           </div>
           <div className="flex flex-wrap gap-0.5 mt-0.5">
             {p.legge_104 > 0 && (
               <span className="bg-orange-100 text-orange-800 px-1 rounded text-[9px]">
-                L104:{p.legge_104}h
+                L104:{formatOreTotali(p.legge_104)}
               </span>
             )}
             {p.ferie > 0 && (
               <span className="bg-green-100 text-green-800 px-1 rounded text-[9px]">
-                FER:{p.ferie}h
+                FER:{formatOreTotali(p.ferie)}
               </span>
             )}
           </div>
@@ -203,7 +203,7 @@ export function GrigliaPresenze({
                 </td>
               ))}
               <td className="text-center font-bold bg-gray-50 border-l-2 border-gray-300">
-                {riga.ore_totali.toFixed(1)}h
+                {formatOreTotali(riga.ore_totali)}
               </td>
             </tr>
           ))}

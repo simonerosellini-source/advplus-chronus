@@ -160,3 +160,16 @@ export function isPrima(orario1: string, orario2: string): boolean {
 
   return minuti1Totali < minuti2Totali;
 }
+
+/**
+ * Formatta ore decimali in formato "Xh Ym" (base 60)
+ * Es. 5.5 -> "5h 30m", 8 -> "8h", 101.5 -> "101h 30m"
+ */
+export function formatOreTotali(ore: number): string {
+  const oreIntere = Math.floor(ore);
+  const minuti = Math.round((ore - oreIntere) * 60);
+  if (minuti === 0) {
+    return `${oreIntere}h`;
+  }
+  return `${oreIntere}h ${minuti}m`;
+}

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { createClient } from '@/lib/supabase/client';
-import { formatDateIT, calcolaOreTotali, formatTime } from '@/lib/utils/date';
+import { formatDateIT, calcolaOreTotali, formatTime, formatOreTotali } from '@/lib/utils/date';
 import { presenzaSchema } from '@/lib/utils/validations';
 import type { Presenza, OrariSettimanali, GiornoSettimana } from '@/types/database.types';
 import { useToast } from '@/components/ui/Toast';
@@ -136,16 +136,6 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
       }
     }
   }, [formData.ingresso_mattina, formData.uscita_mattina, formData.ingresso_pomeriggio, formData.uscita_pomeriggio, orePreviste, orePresenza]);
-
-  // Formatta ore totali in formato "Xh Ym" (base 60)
-  function formatOreTotali(ore: number): string {
-    const oreIntere = Math.floor(ore);
-    const minuti = Math.round((ore - oreIntere) * 60);
-    if (minuti === 0) {
-      return `${oreIntere}h`;
-    }
-    return `${oreIntere}h ${minuti}m`;
-  }
 
   // Gestione cambio campo
   function handleChange(field: string, value: string | boolean | number) {
