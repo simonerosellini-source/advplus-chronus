@@ -106,14 +106,15 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
     loadUserData();
   }, [userId, data]);
 
-  // Calcola ore totali in tempo reale (presenza + straordinari)
+  // Calcola ore totali in tempo reale (solo ore di presenza)
+  // Gli straordinari sono già inclusi nelle ore di presenza, non vanno sommati
   const orePresenza = calcolaOreTotali(
     formData.ingresso_mattina || null,
     formData.uscita_mattina || null,
     formData.ingresso_pomeriggio || null,
     formData.uscita_pomeriggio || null
   );
-  const oreTotali = orePresenza + (formData.straordinari || 0);
+  const oreTotali = orePresenza;
 
   // Calcola automaticamente straordinari quando cambiano gli orari
   useEffect(() => {
