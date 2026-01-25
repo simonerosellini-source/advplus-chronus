@@ -73,15 +73,20 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
       // Include festività globali (sede = null) e festività della sede dell'utente
       const userSede = (userData as Pick<User, 'sede'>).sede;
 
+      // Debug: log per verificare cosa viene caricato
+      console.log('Caricamento festività per anno:', anno, 'sede utente:', userSede);
+
       // Filtra per sede: include festività globali (sede IS NULL) e festività della sede utente
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
-        .or(userSede ? `sede.is.null,sede.eq.${userSede}` : 'sede.is.null')
+        .is('sede', null)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;
+
+      console.log('Festività caricate:', festiviData?.length, festiviData);
 
       setPresenze(presenzeData || []);
       setFestivi(festiviData || []);

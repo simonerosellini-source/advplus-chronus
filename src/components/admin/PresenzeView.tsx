@@ -70,14 +70,18 @@ export function PresenzeView() {
       const sediUniche = [...new Set(sediUtenti)];
 
       // Filtra per sede: include festività globali (sede IS NULL) e festività delle sedi degli utenti
+      console.log('Caricamento festività admin per anno:', anno, 'sedi:', sediUniche);
+
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
-        .or(sediUniche.length > 0 ? `sede.is.null,sede.in.(${sediUniche.join(',')})` : 'sede.is.null')
+        .is('sede', null)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;
+
+      console.log('Festività admin caricate:', festiviData?.length, festiviData);
 
       setUsers(usersData || []);
       setPresenze(presenzeData || []);
