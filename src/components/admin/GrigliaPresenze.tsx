@@ -23,12 +23,16 @@ export function GrigliaPresenze({
 }: GrigliaPresenzeProps) {
   const giorniMese = getGiorniMese(anno, mese);
 
+  // Debug: verifica formato date
+  console.log('GrigliaPresenze - Mese:', mese, 'Anno:', anno);
+  console.log('GrigliaPresenze - Ricevute festività:', festivi.length);
+  console.log('GrigliaPresenze - Tutte le date festività:', festivi.map(f => f.data));
+
   // Prepara mappa festivi per lookup veloce
   const festiviMap = new Map(festivi.map((f) => [f.data, f]));
 
-  // Debug: verifica formato date
-  console.log('GrigliaPresenze - Mese:', mese, 'Anno:', anno);
-  console.log('GrigliaPresenze - festiviMap keys:', Array.from(festiviMap.keys()).slice(0, 5));
+  console.log('GrigliaPresenze - festiviMap keys:', Array.from(festiviMap.keys()));
+  console.log('GrigliaPresenze - festiviMap size:', festiviMap.size, 'vs festivi.length:', festivi.length);
   console.log('GrigliaPresenze - Esempio data calendario:', giorniMese.length > 0 ? toISODate(giorniMese[0]) : 'N/A');
 
   // Prepara mappa presenze per lookup veloce
