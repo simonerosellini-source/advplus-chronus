@@ -173,7 +173,11 @@ export function PresenzeView() {
           const presenza = presenze.find(
             p => p.user_id === user.id && p.data === dataISO
           );
-          const festivo = festivi.find(f => f.data === dataISO);
+          // Filtra festività per sede: include solo globali (sede = null) o quelle della sede utente
+          const festivo = festivi.find(f =>
+            f.data === dataISO &&
+            (f.sede === null || f.sede === user.sede)
+          );
 
           if (festivo) {
             row.push(festivo.tipo === 'festivo' ? 'FEST' : 'SEMI');

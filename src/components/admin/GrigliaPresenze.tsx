@@ -28,13 +28,6 @@ export function GrigliaPresenze({
   console.log('GrigliaPresenze - Ricevute festività:', festivi.length);
   console.log('GrigliaPresenze - Tutte le date festività:', festivi.map(f => f.data));
 
-  // Prepara mappa festivi per lookup veloce
-  const festiviMap = new Map(festivi.map((f) => [f.data, f]));
-
-  console.log('GrigliaPresenze - festiviMap keys:', Array.from(festiviMap.keys()));
-  console.log('GrigliaPresenze - festiviMap size:', festiviMap.size, 'vs festivi.length:', festivi.length);
-  console.log('GrigliaPresenze - Esempio data calendario:', giorniMese.length > 0 ? toISODate(giorniMese[0]) : 'N/A');
-
   // Prepara mappa presenze per lookup veloce
   const presenzeMap = new Map<string, Presenza>();
   presenze.forEach((p) => {
@@ -43,9 +36,27 @@ export function GrigliaPresenze({
 
   // Calcola dati per ogni riga (utente)
   const righe: RigaPresenze[] = users.map((user) => {
+    // Filtra festività per questo utente: include solo festività globali (sede = null)
+    // e festività specifiche della sede dell'utente
+    const festiviUtente = festivi.filter(f => f.sede === null || f.sede === user.sede);
+
+    // Crea mappa festività per questo utente con gestione duplicati
+    // (priorità a festività specifiche della sede rispetto a quelle globali)
+    const festiviMapUtente = new Map<string, GiornoFestivo>();
+    festiviUtente.forEach(f => {
+      const existing = festiviMapUtente.get(f.data);
+      // Se non c'è una festività per questa data, o se questa festività ha una sede specifica
+      // (che ha priorità su quella globale), la impostiamo
+      if (!existing || (f.sede !== null && existing.sede === null)) {
+        festiviMapUtente.set(f.data, f);
+      }
+    });
+
+    console.log(`GrigliaPresenze - User: ${user.nome} ${user.cognome}, Sede: ${user.sede}, Festività: ${festiviMapUtente.size}`);
+
     const giorni: GiornoCalendario[] = giorniMese.map((dataObj) => {
       const data = toISODate(dataObj);
-      const festivo = festiviMap.get(data);
+      const festivo = festiviMapUtente.get(data);
       const presenza = presenzeMap.get(`${user.id}-${data}`);
       const futuro = isFuturo(data);
 

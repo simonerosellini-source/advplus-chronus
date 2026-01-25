@@ -53,6 +53,11 @@ function calcolaOreTotali(
  * Crea presenze di default per un mese per un utente
  * Salta sabati, domeniche, festivi e giorni futuri
  * Per semifestivi crea solo la mattina (09:00-13:00)
+ *
+ * IMPORTANTE: L'array festivi deve contenere solo le festività rilevanti per l'utente:
+ * - Festività globali (sede = null)
+ * - Festività specifiche della sede dell'utente
+ * Il filtro per sede deve essere applicato dal chiamante prima di invocare questa funzione.
  */
 export async function creaPresenzeDefault(
   userId: string,
