@@ -50,9 +50,9 @@ export function GrigliaPresenze({
       const futuro = isFuturo(data);
 
       let tipo: GiornoCalendario['tipo'] = 'normale';
-      if (futuro) tipo = 'futuro';
-      else if (festivo?.tipo === 'festivo') tipo = 'festivo';
+      if (festivo?.tipo === 'festivo') tipo = 'festivo';
       else if (festivo?.tipo === 'semifestivo') tipo = 'semifestivo';
+      else if (futuro) tipo = 'futuro';
 
       return {
         data,
