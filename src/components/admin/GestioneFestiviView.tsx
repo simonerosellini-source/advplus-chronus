@@ -59,13 +59,14 @@ export function GestioneFestiviView() {
     try {
       const festiviAnno = generaFestiviAnno(anno);
 
-      // Inserisci tutte le festività
+      // Inserisci tutte le festività (globali, valide per tutte le sedi)
       const { error } = await supabase.from('giorni_festivi').insert(
         festiviAnno.map((f) => ({
           data: f.data,
           nome: f.nome,
           tipo: f.tipo,
           anno,
+          sede: null, // Festività globale valida per tutte le sedi
         })) as any
       );
 
