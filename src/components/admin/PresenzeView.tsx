@@ -73,7 +73,7 @@ export function PresenzeView() {
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
-        .or(`sede.is.null${sediUniche.length > 0 ? `,sede.in.(${sediUniche.join(',')})` : ''}`)
+        .or(`sede.is.null${sediUniche.length > 0 ? `,sede.in.("${sediUniche.join('","')}")` : ''}`)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;
