@@ -69,11 +69,12 @@ export function PresenzeView() {
       }
       const sediUniche = [...new Set(sediUtenti)];
 
+      // Filtra per sede: include festività globali (sede IS NULL) e festività delle sedi degli utenti
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
-        .or(`sede.is.null${sediUniche.length > 0 ? `,sede.in.("${sediUniche.join('","')}")` : ''}`)
+        .or(sediUniche.length > 0 ? `sede.is.null,sede.in.(${sediUniche.join(',')})` : 'sede.is.null')
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;

@@ -72,11 +72,13 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
       // Carica festività dell'anno
       // Include festività globali (sede = null) e festività della sede dell'utente
       const userSede = (userData as Pick<User, 'sede'>).sede;
+
+      // Filtra per sede: include festività globali (sede IS NULL) e festività della sede utente
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
-        .or(`sede.is.null,sede.eq."${userSede}"`)
+        .or(userSede ? `sede.is.null,sede.eq.${userSede}` : 'sede.is.null')
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;
