@@ -73,11 +73,14 @@ export function PresenzeView() {
       const timestamp = new Date().toISOString();
       console.log(`[${timestamp}] Caricamento festività admin per anno:`, anno, 'sedi:', sediUniche);
 
+      const sedeFilter = sediUniche.length > 0
+        ? `sede.is.null,sede.in.(${sediUniche.join(',')})`
+        : 'sede.is.null';
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
-        .is('sede', null)
+        .or(sedeFilter)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;

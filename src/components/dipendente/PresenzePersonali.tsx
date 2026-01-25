@@ -77,11 +77,12 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
       console.log('Caricamento festività per anno:', anno, 'sede utente:', userSede);
 
       // Filtra per sede: include festività globali (sede IS NULL) e festività della sede utente
+      const sedeFilter = userSede ? `sede.is.null,sede.eq.${userSede}` : 'sede.is.null';
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
-        .is('sede', null)
+        .or(sedeFilter)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;
