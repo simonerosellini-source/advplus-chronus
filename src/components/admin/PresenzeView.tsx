@@ -70,7 +70,8 @@ export function PresenzeView() {
       const sediUniche = [...new Set(sediUtenti)];
 
       // Filtra per sede: include festività globali (sede IS NULL) e festività delle sedi degli utenti
-      console.log('Caricamento festività admin per anno:', anno, 'sedi:', sediUniche);
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] Caricamento festività admin per anno:`, anno, 'sedi:', sediUniche);
 
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
@@ -81,11 +82,13 @@ export function PresenzeView() {
 
       if (festiviError) throw festiviError;
 
-      console.log('Festività admin caricate:', festiviData?.length, festiviData);
+      console.log(`[${timestamp}] Festività admin caricate:`, festiviData?.length, festiviData);
 
       setUsers(usersData || []);
       setPresenze(presenzeData || []);
       setFestivi(festiviData || []);
+
+      console.log(`[${timestamp}] State aggiornato`);
     } catch (error: any) {
       console.error('Errore caricamento dati:', error);
       const errorMessage = error?.message || 'Errore durante il caricamento dei dati';
@@ -308,6 +311,7 @@ export function PresenzeView() {
       </div>
 
       {/* Griglia Presenze */}
+      {console.log('PresenzeView render - festivi.length:', festivi.length, 'mese:', mese, 'anno:', anno)}
       <GrigliaPresenze
         anno={anno}
         mese={mese}
