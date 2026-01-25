@@ -148,6 +148,32 @@ export function GrigliaPresenze({
     }
 
     if (giorno.tipo === 'futuro') {
+      // Se ci sono ferie/assenze programmate, mostrale
+      if (giorno.presenza) {
+        const p = giorno.presenza;
+        return (
+          <div className="text-[10px] leading-tight text-gray-500">
+            {p.ferie > 0 && (
+              <span className="bg-green-100 text-green-800 px-1 rounded text-[9px]">
+                FER:{formatOreTotali(p.ferie)}
+              </span>
+            )}
+            {p.malattia > 0 && (
+              <span className="bg-red-100 text-red-800 px-1 rounded text-[9px] ml-0.5">
+                MAL:{formatOreTotali(p.malattia)}
+              </span>
+            )}
+            {p.legge_104 > 0 && (
+              <span className="bg-orange-100 text-orange-800 px-1 rounded text-[9px] ml-0.5">
+                L104:{formatOreTotali(p.legge_104)}
+              </span>
+            )}
+            {!p.ferie && !p.malattia && !p.legge_104 && (
+              <div className="text-center text-xs text-gray-400">-</div>
+            )}
+          </div>
+        );
+      }
       return <div className="text-center text-xs text-gray-400">-</div>;
     }
 
@@ -238,7 +264,7 @@ export function GrigliaPresenze({
                   key={giorno.data}
                   className={getCellaClassName(giorno)}
                   onClick={() => {
-                    if (giorno.tipo !== 'festivo' && giorno.tipo !== 'futuro') {
+                    if (giorno.tipo !== 'festivo') {
                       onCellClick(riga.user.id, giorno.data);
                     }
                   }}

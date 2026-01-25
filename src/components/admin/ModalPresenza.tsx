@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Modal, ModalFooter } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { createClient } from '@/lib/supabase/client';
-import { formatDateIT, calcolaOreTotali, formatTime, formatOreTotali } from '@/lib/utils/date';
+import { formatDateIT, calcolaOreTotali, formatTime, formatOreTotali, isFuturo } from '@/lib/utils/date';
 import { presenzaSchema } from '@/lib/utils/validations';
 import type { Presenza, OrariSettimanali, GiornoSettimana } from '@/types/database.types';
 import { useToast } from '@/components/ui/Toast';
@@ -52,6 +52,9 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
 
   const { showToast } = useToast();
   const supabase = createClient();
+
+  // Determina se la data è futura
+  const dataFutura = isFuturo(data);
 
   // Carica nome utente e orari settimanali
   useEffect(() => {
@@ -141,7 +144,8 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
   const assenzeValid = { malattia: false, legge_104: false, ferie: false };
   let canSave = true;
 
-  if (orePreviste > 0 && orePresenza > 0) {
+  // Per i giorni futuri, permetti sempre il salvataggio (solo assenze programmate)
+  if (!dataFutura && orePreviste > 0 && orePresenza > 0) {
     const totaleAssenze = (formData.malattia || 0) + (formData.legge_104 || 0) + (formData.ferie || 0);
 
     if (orePresenza < orePreviste) {
@@ -279,6 +283,24 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
           </div>
         </div>
 
+        {/* Messaggio per date future */}
+        {dataFutura && (
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Giorno futuro:</strong> Puoi programmare solo assenze (ferie, malattia, legge 104). Gli orari di lavoro non possono essere inseriti per date future.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Form */}
         <div className="grid grid-cols-2 gap-6">
           {/* Mattina */}
@@ -292,6 +314,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.ingresso_mattina}
                 onChange={(val) => handleChange('ingresso_mattina', val)}
                 error={!!errors.ingresso_mattina}
+                disabled={dataFutura}
               />
               {errors.ingresso_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_mattina}</p>
@@ -305,6 +328,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.uscita_mattina}
                 onChange={(val) => handleChange('uscita_mattina', val)}
                 error={!!errors.uscita_mattina}
+                disabled={dataFutura}
               />
               {errors.uscita_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_mattina}</p>
@@ -323,6 +347,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.ingresso_pomeriggio}
                 onChange={(val) => handleChange('ingresso_pomeriggio', val)}
                 error={!!errors.ingresso_pomeriggio}
+                disabled={dataFutura}
               />
               {errors.ingresso_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_pomeriggio}</p>
@@ -336,6 +361,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.uscita_pomeriggio}
                 onChange={(val) => handleChange('uscita_pomeriggio', val)}
                 error={!!errors.uscita_pomeriggio}
+                disabled={dataFutura}
               />
               {errors.uscita_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_pomeriggio}</p>
@@ -353,6 +379,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
             rows={3}
             className="input"
             placeholder="Note aggiuntive (opzionale)"
+            disabled={dataFutura}
           />
         </div>
 
@@ -374,18 +401,20 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.straordinari}
                 onChange={(e) => handleChange('straordinari', parseFloat(e.target.value) || 0)}
                 className="input"
+                disabled={dataFutura}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Trasferta
               </label>
-              <div className="input flex items-center cursor-pointer h-[42px]" onClick={() => handleChange('trasferta', !formData.trasferta)}>
+              <div className={`input flex items-center h-[42px] ${dataFutura ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !dataFutura && handleChange('trasferta', !formData.trasferta)}>
                 <input
                   type="checkbox"
                   checked={formData.trasferta}
                   onChange={(e) => handleChange('trasferta', e.target.checked)}
                   className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  disabled={dataFutura}
                 />
                 <span className="ml-2 text-gray-700">Presente</span>
               </div>
@@ -435,14 +464,16 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
           </div>
         </div>
 
-        {/* Ore totali */}
-        <div className="bg-primary text-white rounded-lg p-4 text-center">
-          <p className="text-sm opacity-90">Ore Totali</p>
-          <p className="text-3xl font-bold">{formatOreTotali(oreTotali)}</p>
-        </div>
+        {/* Ore totali - solo per giorni non futuri */}
+        {!dataFutura && (
+          <div className="bg-primary text-white rounded-lg p-4 text-center">
+            <p className="text-sm opacity-90">Ore Totali</p>
+            <p className="text-3xl font-bold">{formatOreTotali(oreTotali)}</p>
+          </div>
+        )}
 
         {/* Messaggi di validazione */}
-        {!canSave && orePreviste > 0 && (
+        {!canSave && !dataFutura && orePreviste > 0 && (
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
             <div className="flex items-start">
               <div className="flex-shrink-0">

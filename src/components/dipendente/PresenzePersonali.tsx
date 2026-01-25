@@ -300,7 +300,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                 ? 'border-gray-300'
                 : 'border-gray-200';
 
-            const isClickable = giorno.tipo !== 'festivo' && giorno.tipo !== 'futuro';
+            const isClickable = giorno.tipo !== 'festivo';
 
             return (
               <div
@@ -385,6 +385,10 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
 
                 {!giorno.presenza && giorno.tipo === 'normale' && (
                   <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
+                )}
+
+                {!giorno.presenza && giorno.tipo === 'futuro' && (
+                  <div className="text-xs text-gray-400 text-center mt-4">Click per programmare ferie</div>
                 )}
               </div>
             );
