@@ -236,6 +236,9 @@ export function PresenzeView() {
     }
   }
 
+  // Debug: log festività prima del render
+  console.log('PresenzeView render - festivi.length:', festivi.length, 'mese:', mese, 'anno:', anno);
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -311,7 +314,6 @@ export function PresenzeView() {
       </div>
 
       {/* Griglia Presenze */}
-      {console.log('PresenzeView render - festivi.length:', festivi.length, 'mese:', mese, 'anno:', anno)}
       <GrigliaPresenze
         anno={anno}
         mese={mese}
