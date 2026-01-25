@@ -144,6 +144,11 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   const festiviMap = new Map(festivi.map((f) => [f.data, f]));
   const presenzeMap = new Map(presenze.map((p) => [p.data, p]));
 
+  // Debug: verifica formato date
+  console.log('Mese visualizzato:', mese, 'Anno:', anno);
+  console.log('festiviMap keys:', Array.from(festiviMap.keys()));
+  console.log('Esempio data dal calendario:', giorniMese.length > 0 ? toISODate(giorniMese[0]) : 'N/A');
+
   // Prepara giorni con dati
   const giorni: GiornoCalendario[] = giorniMese.map((dataObj) => {
     const data = toISODate(dataObj);

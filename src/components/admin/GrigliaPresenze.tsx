@@ -26,6 +26,11 @@ export function GrigliaPresenze({
   // Prepara mappa festivi per lookup veloce
   const festiviMap = new Map(festivi.map((f) => [f.data, f]));
 
+  // Debug: verifica formato date
+  console.log('GrigliaPresenze - Mese:', mese, 'Anno:', anno);
+  console.log('GrigliaPresenze - festiviMap keys:', Array.from(festiviMap.keys()).slice(0, 5));
+  console.log('GrigliaPresenze - Esempio data calendario:', giorniMese.length > 0 ? toISODate(giorniMese[0]) : 'N/A');
+
   // Prepara mappa presenze per lookup veloce
   const presenzeMap = new Map<string, Presenza>();
   presenze.forEach((p) => {
