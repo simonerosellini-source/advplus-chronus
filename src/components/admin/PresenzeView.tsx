@@ -319,7 +319,10 @@ export function PresenzeView() {
         mese={mese}
         users={users}
         presenze={presenze}
-        festivi={festivi}
+        festivi={(() => {
+          console.log('Passando festivi a GrigliaPresenze:', festivi.length, 'festività');
+          return festivi;
+        })()}
         onCellClick={handleCellClick}
       />
 
