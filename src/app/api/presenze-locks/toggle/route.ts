@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { PresenzeLock } from '@/types/database.types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,15 +25,14 @@ export async function POST(request: NextRequest) {
     const adminClient = createAdminClient();
 
     // Verifica se esiste già un record per questo mese/anno
-    const { data: existingLock, error: fetchError } = await adminClient
+    const { data, error: fetchError } = await adminClient
       .from('presenze_locks')
       .select('*')
       .eq('anno', anno)
       .eq('mese', mese)
-      .single();
+      .maybeSingle();
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      // PGRST116 = nessun risultato trovato
+    if (fetchError) {
       console.error('Errore durante la ricerca del lock:', fetchError);
       return NextResponse.json(
         { error: fetchError.message || 'Errore durante la ricerca del lock' },
@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const existingLock = data as PresenzeLock | null;
     let newLockedState = true;
 
     if (existingLock) {
