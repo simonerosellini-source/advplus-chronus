@@ -2,7 +2,7 @@
 
 // Vista Presenze - Griglia tipo Excel
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Download, Upload, Plus, Lock, Unlock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Upload, Plus, Lock, Unlock, Mail } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner, TableSkeleton } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
@@ -28,6 +28,7 @@ export function PresenzeView() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const { showToast } = useToast();
   const supabase = createClient();
@@ -169,6 +170,43 @@ export function PresenzeView() {
       showToast('Errore durante il toggle del lock', 'error');
     } finally {
       setLockLoading(false);
+    }
+  }
+
+  // Invia email reminder a tutti gli utenti
+  async function handleSendTimesheetReminder() {
+    if (!confirm('Sei sicuro di voler inviare una email a tutti gli utenti attivi per richiedere l\'inserimento delle ore di lavoro?')) {
+      return;
+    }
+
+    setSendingEmail(true);
+    try {
+      const response = await fetch('/api/email/send-timesheet-reminder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        if (data.sent > 0) {
+          showToast(
+            `Email inviate con successo a ${data.sent} ${data.sent === 1 ? 'utente' : 'utenti'}${data.failed > 0 ? ` (${data.failed} fallite)` : ''}`,
+            data.failed > 0 ? 'warning' : 'success'
+          );
+        } else {
+          showToast(data.message || 'Nessuna email inviata', 'info');
+        }
+      } else {
+        showToast(data.error || 'Errore durante l\'invio delle email', 'error');
+      }
+    } catch (error: any) {
+      console.error('Errore durante l\'invio delle email:', error);
+      showToast('Errore durante l\'invio delle email', 'error');
+    } finally {
+      setSendingEmail(false);
     }
   }
 
@@ -378,12 +416,27 @@ export function PresenzeView() {
         {/* Azioni */}
         <div className="flex items-center gap-2">
           <button
+            onClick={handleSendTimesheetReminder}
+            disabled={sendingEmail}
+            className="btn-primary text-sm py-2 px-3 flex items-center gap-2"
+            title="Invia email a tutti gli utenti per richiedere inserimento ore"
+          >
+            {sendingEmail ? (
+              <LoadingSpinner className="h-4 w-4" />
+            ) : (
+              <Mail className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">
+              {sendingEmail ? 'Invio...' : 'Invia Reminder'}
+            </span>
+          </button>
+          <button
             onClick={handleToggleLock}
             disabled={lockLoading}
             className={`text-sm py-2 px-3 flex items-center gap-2 ${
               isLocked
                 ? 'btn-danger'
-                : 'btn-primary'
+                : 'btn-outline'
             }`}
             title={isLocked ? 'Sblocca presenze per tutti gli utenti' : 'Blocca presenze per utenti non admin'}
           >
