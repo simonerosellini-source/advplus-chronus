@@ -33,10 +33,9 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('anno', annoNum)
       .eq('mese', meseNum)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
-      // PGRST116 = nessun risultato trovato
+    if (error) {
       console.error('Errore durante il recupero del lock:', error);
       return NextResponse.json(
         { error: error.message || 'Errore durante il recupero del lock' },
