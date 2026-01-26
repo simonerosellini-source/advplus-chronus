@@ -65,15 +65,25 @@ export async function POST(request: NextRequest) {
 
     // Invia email di benvenuto con le credenziali
     // L'invio è asincrono e non bloccante - se fallisce non impedisce la creazione dell'utente
+    console.log(`🚀 Avvio invio email di benvenuto per: ${email}`);
+
     sendWelcomeEmail({
       nome,
       cognome,
       email,
       password,
-    }).catch((error) => {
-      console.error('Errore durante l\'invio dell\'email di benvenuto:', error);
-      // Non propagare l'errore - l'utente è stato creato comunque
-    });
+    })
+      .then((result) => {
+        if (result.success) {
+          console.log(`✅ Email inviata con successo a: ${email}`);
+        } else {
+          console.error(`❌ Invio email fallito per ${email}:`, result.message);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Errore durante l\'invio dell\'email di benvenuto:', error);
+        // Non propagare l'errore - l'utente è stato creato comunque
+      });
 
     return NextResponse.json(
       {

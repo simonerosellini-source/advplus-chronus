@@ -5,8 +5,19 @@ import nodemailer from 'nodemailer';
  */
 export function createEmailTransport() {
   // Verifica che le variabili d'ambiente siano configurate
+  console.log('🔍 Verifica variabili SMTP:', {
+    SMTP_HOST: process.env.SMTP_HOST ? '✓' : '✗',
+    SMTP_PORT: process.env.SMTP_PORT ? '✓' : '✗',
+    SMTP_USER: process.env.SMTP_USER ? '✓' : '✗',
+    SMTP_PASSWORD: process.env.SMTP_PASSWORD ? '✓' : '✗',
+  });
+
   if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASSWORD) {
     console.warn('⚠️ Configurazione SMTP incompleta. Le email non verranno inviate.');
+    console.warn('   SMTP_HOST:', process.env.SMTP_HOST || 'MANCANTE');
+    console.warn('   SMTP_PORT:', process.env.SMTP_PORT || 'MANCANTE');
+    console.warn('   SMTP_USER:', process.env.SMTP_USER || 'MANCANTE');
+    console.warn('   SMTP_PASSWORD:', process.env.SMTP_PASSWORD ? '***' : 'MANCANTE');
     return null;
   }
 

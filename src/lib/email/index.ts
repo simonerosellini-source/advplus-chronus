@@ -10,6 +10,8 @@ export async function sendWelcomeEmail(params: {
   email: string;
   password: string;
 }) {
+  console.log(`📧 Tentativo invio email di benvenuto a: ${params.email}`);
+
   const transport = createEmailTransport();
 
   // Se SMTP non è configurato, logga un warning e non inviare
@@ -22,6 +24,8 @@ export async function sendWelcomeEmail(params: {
       message: 'Configurazione SMTP non disponibile',
     };
   }
+
+  console.log('✓ Transport SMTP creato correttamente');
 
   try {
     // Ottieni URL dell'applicazione
@@ -40,6 +44,8 @@ export async function sendWelcomeEmail(params: {
 
     // Mittente email (commerciale@advisoryplus.it come richiesto)
     const fromEmail = process.env.SMTP_FROM || 'commerciale@advisoryplus.it';
+
+    console.log(`📤 Invio email da: ${fromEmail} a: ${params.email}`);
 
     // Invia email
     const info = await transport.sendMail({
