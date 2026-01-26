@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { PresenzeLock } from '@/types/database.types';
+import type { PresenzeLock, Database } from '@/types/database.types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
       const { error: updateError } = await adminClient
         .from('presenze_locks')
-        .update({ locked: newLockedState })
+        .update({ locked: newLockedState } as Database['public']['Tables']['presenze_locks']['Update'])
         .eq('anno', anno)
         .eq('mese', mese);
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       // Crea nuovo record (default: locked = true)
       const { error: insertError } = await adminClient
         .from('presenze_locks')
-        .insert({ anno, mese, locked: true });
+        .insert({ anno, mese, locked: true } as Database['public']['Tables']['presenze_locks']['Insert']);
 
       if (insertError) {
         console.error('Errore durante la creazione del lock:', insertError);
