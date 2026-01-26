@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import type { PresenzeLock } from '@/types/database.types';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
 
     // Recupera lo stato del lock per il mese/anno specificato
-    const { data: lock, error } = await supabase
+    const { data, error } = await supabase
       .from('presenze_locks')
       .select('*')
       .eq('anno', annoNum)
@@ -44,7 +45,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Se non esiste un record, il mese è sbloccato
-    const locked = lock ? lock.locked : false;
+    const lock = data as PresenzeLock | null;
+    const locked = lock?.locked ?? false;
 
     return NextResponse.json(
       {
