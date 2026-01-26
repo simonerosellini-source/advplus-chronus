@@ -66,7 +66,7 @@ export function createWelcomeEmailTemplate(params: {
                       </tr>
                       <tr>
                         <td style="padding: 8px 0;">
-                          <span style="color: #6b7280; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Password Temporanea</span>
+                          <span style="color: #6b7280; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Password</span>
                         </td>
                       </tr>
                       <tr>
@@ -91,11 +91,11 @@ export function createWelcomeEmailTemplate(params: {
               </table>
 
               <!-- Avviso sicurezza -->
-              <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px; margin-bottom: 30px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 4px; margin-bottom: 30px;">
                 <tr>
                   <td style="padding: 16px;">
-                    <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.5;">
-                      <strong>⚠️ Importante:</strong> Ti consigliamo di modificare la password al primo accesso per garantire la sicurezza del tuo account.
+                    <p style="margin: 0; color: #1e40af; font-size: 14px; line-height: 1.5;">
+                      <strong>🔒 Sicurezza:</strong> Conserva le tue credenziali in modo sicuro e non condividerle con nessuno. Puoi modificare la password in qualsiasi momento dalle impostazioni del tuo profilo.
                     </p>
                   </td>
                 </tr>
@@ -139,11 +139,11 @@ Gentile ${nome} ${cognome},
 Il tuo account è stato creato con successo. Di seguito troverai le credenziali per accedere alla piattaforma Chronus+:
 
 Username / Email: ${email}
-Password Temporanea: ${password}
+Password: ${password}
 
 Link di accesso: ${loginUrl}
 
-IMPORTANTE: Ti consigliamo di modificare la password al primo accesso per garantire la sicurezza del tuo account.
+SICUREZZA: Conserva le tue credenziali in modo sicuro e non condividerle con nessuno. Puoi modificare la password in qualsiasi momento dalle impostazioni del tuo profilo.
 
 Se hai bisogno di assistenza o hai domande, non esitare a contattarci.
 
