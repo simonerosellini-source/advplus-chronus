@@ -160,8 +160,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
   const assenzeValid = { malattia: false, legge_104: false, ferie: false };
   let canSave = true;
 
-  // Per i giorni futuri, permetti sempre il salvataggio (solo assenze programmate)
-  if (!dataFutura && orePreviste > 0 && orePresenza > 0) {
+  if (orePreviste > 0 && orePresenza > 0) {
     const totaleAssenze = (formData.malattia || 0) + (formData.legge_104 || 0) + (formData.ferie || 0);
 
     if (orePresenza < orePreviste) {
@@ -329,24 +328,6 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
           </div>
         )}
 
-        {/* Messaggio per date future */}
-        {dataFutura && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-blue-800">
-                  <strong>Giorno futuro:</strong> Puoi programmare solo assenze (ferie, malattia, legge 104). Gli orari di lavoro non possono essere inseriti per date future.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Form */}
         <div className="grid grid-cols-2 gap-6">
           {/* Mattina */}
@@ -360,7 +341,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.ingresso_mattina}
                 onChange={(val) => handleChange('ingresso_mattina', val)}
                 error={!!errors.ingresso_mattina}
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                disabled={isLocked && !isUserAdmin}
               />
               {errors.ingresso_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_mattina}</p>
@@ -374,7 +355,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.uscita_mattina}
                 onChange={(val) => handleChange('uscita_mattina', val)}
                 error={!!errors.uscita_mattina}
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                disabled={isLocked && !isUserAdmin}
               />
               {errors.uscita_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_mattina}</p>
@@ -393,7 +374,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.ingresso_pomeriggio}
                 onChange={(val) => handleChange('ingresso_pomeriggio', val)}
                 error={!!errors.ingresso_pomeriggio}
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                disabled={isLocked && !isUserAdmin}
               />
               {errors.ingresso_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_pomeriggio}</p>
@@ -407,7 +388,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.uscita_pomeriggio}
                 onChange={(val) => handleChange('uscita_pomeriggio', val)}
                 error={!!errors.uscita_pomeriggio}
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                disabled={isLocked && !isUserAdmin}
               />
               {errors.uscita_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_pomeriggio}</p>
@@ -425,7 +406,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
             rows={3}
             className="input"
             placeholder="Note aggiuntive (opzionale)"
-            disabled={dataFutura || (isLocked && !isUserAdmin)}
+            disabled={isLocked && !isUserAdmin}
           />
         </div>
 
@@ -447,20 +428,20 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.straordinari}
                 onChange={(e) => handleChange('straordinari', parseFloat(e.target.value) || 0)}
                 className="input"
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                disabled={isLocked && !isUserAdmin}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Trasferta
               </label>
-              <div className={`input flex items-center h-[42px] ${dataFutura ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !dataFutura && handleChange('trasferta', !formData.trasferta)}>
+              <div className={`input flex items-center h-[42px] cursor-pointer`} onClick={() => handleChange('trasferta', !formData.trasferta)}>
                 <input
                   type="checkbox"
                   checked={formData.trasferta}
                   onChange={(e) => handleChange('trasferta', e.target.checked)}
                   className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                  disabled={dataFutura || (isLocked && !isUserAdmin)}
+                  disabled={isLocked && !isUserAdmin}
                 />
                 <span className="ml-2 text-gray-700">Presente</span>
               </div>
@@ -510,16 +491,14 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
           </div>
         </div>
 
-        {/* Ore totali - solo per giorni non futuri */}
-        {!dataFutura && (
-          <div className="bg-primary text-white rounded-lg p-4 text-center">
-            <p className="text-sm opacity-90">Ore Totali</p>
-            <p className="text-3xl font-bold">{formatOreTotali(oreTotali)}</p>
-          </div>
-        )}
+        {/* Ore totali */}
+        <div className="bg-primary text-white rounded-lg p-4 text-center">
+          <p className="text-sm opacity-90">Ore Totali</p>
+          <p className="text-3xl font-bold">{formatOreTotali(oreTotali)}</p>
+        </div>
 
         {/* Messaggi di validazione */}
-        {!canSave && !dataFutura && orePreviste > 0 && (
+        {!canSave && orePreviste > 0 && (
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
             <div className="flex items-start">
               <div className="flex-shrink-0">
