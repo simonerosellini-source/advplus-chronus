@@ -23,11 +23,11 @@ export async function POST(request: Request) {
     }
 
     // Verifica che l'utente sia amministratore
-    const { data: userData, error: userError } = await supabase
+    const { data: userData, error: userError } = (await supabase
       .from('users')
       .select('ruolo')
       .eq('id', user.id)
-      .single();
+      .single()) as { data: { ruolo: string } | null; error: any };
 
     if (userError || !userData || userData.ruolo !== 'amministratore') {
       console.error('❌ Utente non autorizzato');
