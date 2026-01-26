@@ -322,7 +322,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
               </div>
               <div className="ml-3">
                 <p className="text-sm text-red-800">
-                  <strong>Mese bloccato:</strong> Le presenze per questo mese sono state bloccate dall'amministratore. Non è possibile modificare o eliminare le presenze. Contatta un amministratore per ulteriori informazioni.
+                  <strong>Mese bloccato:</strong> Le presenze per questo mese sono state bloccate dall&apos;amministratore. Non è possibile modificare o eliminare le presenze. Contatta un amministratore per ulteriori informazioni.
                 </p>
               </div>
             </div>
