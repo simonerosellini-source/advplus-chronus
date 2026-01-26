@@ -6,7 +6,7 @@ import { BarChart3, Users, Clock, TrendingUp, Calendar, Download } from 'lucide-
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
-import { MESI_ITALIANI } from '@/lib/utils/date';
+import { MESI_ITALIANI, formatOreTotali } from '@/lib/utils/date';
 import type { User, Presenza } from '@/types/database.types';
 import * as XLSX from 'xlsx';
 
@@ -128,9 +128,9 @@ export function ReportView() {
           stat.user.nome,
           stat.user.cognome,
           stat.user.email,
-          stat.totaleOre.toFixed(1),
+          formatOreTotali(stat.totaleOre),
           stat.giorniPresenza,
-          stat.mediaOre.toFixed(1),
+          formatOreTotali(stat.mediaOre),
         ]),
       ];
       const ws1 = XLSX.utils.aoa_to_sheet(userSheetData);
@@ -141,7 +141,7 @@ export function ReportView() {
         ['Mese', 'Totale Ore', 'Giorni Lavorativi'],
         ...monthlyStats.map(stat => [
           MESI_ITALIANI[stat.mese - 1],
-          stat.totaleOre.toFixed(1),
+          formatOreTotali(stat.totaleOre),
           stat.giorniLavorativi,
         ]),
       ];
@@ -217,7 +217,7 @@ export function ReportView() {
             </div>
             <div>
               <p className="text-sm text-gray-600">Totale Ore {anno}</p>
-              <p className="text-2xl font-bold text-gray-900">{totaleOreAnno.toFixed(0)}h</p>
+              <p className="text-2xl font-bold text-gray-900">{formatOreTotali(totaleOreAnno)}</p>
             </div>
           </div>
         </div>
@@ -229,7 +229,7 @@ export function ReportView() {
             </div>
             <div>
               <p className="text-sm text-gray-600">Media Ore/Utente</p>
-              <p className="text-2xl font-bold text-gray-900">{mediaOreUtente.toFixed(0)}h</p>
+              <p className="text-2xl font-bold text-gray-900">{formatOreTotali(mediaOreUtente)}</p>
             </div>
           </div>
         </div>
@@ -261,7 +261,7 @@ export function ReportView() {
                   {index + 1}. {stat.user.nome} {stat.user.cognome}
                 </span>
                 <span className="text-gray-600">
-                  {stat.totaleOre.toFixed(1)}h ({stat.giorniPresenza} giorni)
+                  {formatOreTotali(stat.totaleOre)} ({stat.giorniPresenza} giorni)
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -284,7 +284,7 @@ export function ReportView() {
           {monthlyStats.filter(m => m.totaleOre > 0).map(stat => (
             <div key={stat.mese} className="border border-gray-200 rounded-lg p-4">
               <p className="font-medium text-gray-900">{MESI_ITALIANI[stat.mese - 1]}</p>
-              <p className="text-2xl font-bold text-primary mt-2">{stat.totaleOre.toFixed(0)}h</p>
+              <p className="text-2xl font-bold text-primary mt-2">{formatOreTotali(stat.totaleOre)}</p>
               <p className="text-sm text-gray-600 mt-1">
                 {stat.giorniLavorativi} giorni lavorativi
               </p>

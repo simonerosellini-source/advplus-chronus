@@ -3,6 +3,23 @@
 export type RuoloUtente = 'amministratore' | 'dipendente' | 'collaboratore';
 export type TipoFestivita = 'festivo' | 'semifestivo';
 export type Sede = 'Viareggio' | 'Pietrasanta' | 'Massa' | 'Camaiore' | 'Carrara';
+export type GiornoSettimana = 'lunedi' | 'martedi' | 'mercoledi' | 'giovedi' | 'venerdi' | 'sabato' | 'domenica';
+
+// Struttura per gli orari di un singolo giorno
+export interface OrarioGiornaliero {
+  abilitato: boolean; // Flag generale per il giorno
+  mattina_abilitata: boolean; // Flag per la sessione mattina
+  ingresso_mattina: string | null;
+  uscita_mattina: string | null;
+  pomeriggio_abilitato: boolean; // Flag per la sessione pomeriggio
+  ingresso_pomeriggio: string | null;
+  uscita_pomeriggio: string | null;
+}
+
+// Struttura completa per gli orari settimanali
+export type OrariSettimanali = {
+  [K in GiornoSettimana]: OrarioGiornaliero;
+};
 
 export interface User {
   id: string;
@@ -19,6 +36,7 @@ export interface User {
   uscita_mattina_default: string | null;
   ingresso_pomeriggio_default: string | null;
   uscita_pomeriggio_default: string | null;
+  orari_settimanali: OrariSettimanali | null;
 }
 
 export interface Presenza {
@@ -35,7 +53,7 @@ export interface Presenza {
   malattia: number;
   legge_104: number;
   ferie: number;
-  ore_trasferte: number;
+  trasferta: boolean;
   created_at: string;
   updated_at: string;
   // Relazioni
@@ -48,7 +66,17 @@ export interface GiornoFestivo {
   nome: string;
   tipo: TipoFestivita;
   anno: number;
+  sede: Sede | null; // null = festività globale valida per tutte le sedi
   created_at: string;
+}
+
+export interface PresenzeLock {
+  id: string;
+  anno: number;
+  mese: number;
+  locked: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // Tipi per le form
@@ -65,6 +93,7 @@ export interface UserFormData {
   uscita_mattina_default?: string;
   ingresso_pomeriggio_default?: string;
   uscita_pomeriggio_default?: string;
+  orari_settimanali?: OrariSettimanali | null;
 }
 
 export interface PresenzaFormData {
@@ -79,13 +108,14 @@ export interface PresenzaFormData {
   malattia?: number;
   legge_104?: number;
   ferie?: number;
-  ore_trasferte?: number;
+  trasferta?: boolean;
 }
 
 export interface FestivitaFormData {
   data: string;
   nome: string;
   tipo: TipoFestivita;
+  sede?: Sede | null; // null = festività globale valida per tutte le sedi
   ricorrente?: boolean;
 }
 
@@ -102,6 +132,14 @@ export interface RigaPresenze {
   user: User;
   giorni: GiornoCalendario[];
   ore_totali: number;
+  totaliMensili: {
+    oreOrdinarie: number;
+    straordinari: number;
+    malattia: number;
+    legge_104: number;
+    ferie: number;
+    trasferte: number; // Numero di giorni con trasferta
+  };
 }
 
 // Statistiche
@@ -132,6 +170,11 @@ export interface Database {
         Row: GiornoFestivo;
         Insert: Omit<GiornoFestivo, 'id' | 'created_at'>;
         Update: Partial<Omit<GiornoFestivo, 'id' | 'created_at'>>;
+      };
+      presenze_locks: {
+        Row: PresenzeLock;
+        Insert: Omit<PresenzeLock, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<PresenzeLock, 'id' | 'created_at' | 'updated_at'>>;
       };
     };
   };

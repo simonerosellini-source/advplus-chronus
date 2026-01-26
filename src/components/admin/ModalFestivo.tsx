@@ -6,7 +6,7 @@ import { Modal, ModalFooter } from '@/components/ui/Modal';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { createClient } from '@/lib/supabase/client';
 import { festivitaSchema } from '@/lib/utils/validations';
-import type { TipoFestivita } from '@/types/database.types';
+import type { TipoFestivita, Sede } from '@/types/database.types';
 import { useToast } from '@/components/ui/Toast';
 
 interface ModalFestivoProps {
@@ -15,10 +15,16 @@ interface ModalFestivoProps {
 
 export function ModalFestivo({ onClose }: ModalFestivoProps) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    data: string;
+    nome: string;
+    tipo: TipoFestivita;
+    sede: Sede | 'tutte';
+  }>({
     data: '',
     nome: '',
-    tipo: 'festivo' as TipoFestivita,
+    tipo: 'festivo',
+    sede: 'tutte',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -57,12 +63,16 @@ export function ModalFestivo({ onClose }: ModalFestivoProps) {
       // Estrai anno dalla data
       const anno = new Date(formData.data).getFullYear();
 
+      // Prepara sede: "tutte" diventa null per festività globali
+      const sede = formData.sede === 'tutte' ? null : formData.sede;
+
       // @ts-expect-error - TypeScript incorrectly infers insert parameter type as never
       const { error } = await supabase.from('giorni_festivi').insert({
         data: formData.data,
         nome: formData.nome,
         tipo: formData.tipo,
         anno,
+        sede,
       });
 
       if (error) {
@@ -133,12 +143,36 @@ export function ModalFestivo({ onClose }: ModalFestivoProps) {
           </p>
         </div>
 
+        {/* Sede */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Sede *</label>
+          <select
+            value={formData.sede}
+            onChange={(e) => handleChange('sede', e.target.value)}
+            className={errors.sede ? 'input-error' : 'input'}
+          >
+            <option value="tutte">Tutte le sedi (festività globale)</option>
+            <option value="Viareggio">Viareggio</option>
+            <option value="Pietrasanta">Pietrasanta</option>
+            <option value="Massa">Massa</option>
+            <option value="Camaiore">Camaiore</option>
+            <option value="Carrara">Carrara</option>
+          </select>
+          {errors.sede && <p className="text-red-600 text-xs mt-1">{errors.sede}</p>}
+          <p className="text-gray-500 text-xs mt-1">
+            Seleziona &quot;Tutte le sedi&quot; per festività nazionali o una sede specifica per festività locali.
+          </p>
+        </div>
+
         {/* Info */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
           <p className="font-medium mb-1">ℹ️ Informazioni</p>
           <p>
-            Questa festività verrà aggiunta al calendario e applicata a tutti gli utenti. Le
-            festività predefinite (Art. 31) vengono generate automaticamente ogni anno.
+            {formData.sede === 'tutte'
+              ? 'Questa festività verrà applicata a tutti gli utenti di tutte le sedi.'
+              : `Questa festività verrà applicata solo agli utenti della sede di ${formData.sede}.`
+            }
+            {' '}Le festività predefinite (Art. 31) vengono generate automaticamente ogni anno.
           </p>
         </div>
 

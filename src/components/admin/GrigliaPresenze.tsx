@@ -1,7 +1,7 @@
 'use client';
 
 // Componente Griglia Presenze tipo Excel
-import { getGiorniMese, formatTime, toISODate, isFuturo } from '@/lib/utils/date';
+import { getGiorniMese, formatTime, toISODate, isFuturo, formatOreTotali } from '@/lib/utils/date';
 import type { User, Presenza, GiornoFestivo, GiornoCalendario, RigaPresenze } from '@/types/database.types';
 
 interface GrigliaPresenzeProps {
@@ -23,8 +23,10 @@ export function GrigliaPresenze({
 }: GrigliaPresenzeProps) {
   const giorniMese = getGiorniMese(anno, mese);
 
-  // Prepara mappa festivi per lookup veloce
-  const festiviMap = new Map(festivi.map((f) => [f.data, f]));
+  // Debug: verifica formato date
+  console.log('GrigliaPresenze - Mese:', mese, 'Anno:', anno);
+  console.log('GrigliaPresenze - Ricevute festività:', festivi.length);
+  console.log('GrigliaPresenze - Tutte le date festività:', festivi.map(f => f.data));
 
   // Prepara mappa presenze per lookup veloce
   const presenzeMap = new Map<string, Presenza>();
@@ -34,16 +36,35 @@ export function GrigliaPresenze({
 
   // Calcola dati per ogni riga (utente)
   const righe: RigaPresenze[] = users.map((user) => {
+    // Filtra festività per questo utente: include solo festività globali (sede = null)
+    // e festività specifiche della sede dell'utente
+    const festiviUtente = festivi.filter(f => f.sede === null || f.sede === user.sede);
+
+    // Crea mappa festività per questo utente con gestione duplicati
+    // (priorità a festività specifiche della sede rispetto a quelle globali)
+    const festiviMapUtente = new Map<string, GiornoFestivo>();
+    festiviUtente.forEach(f => {
+      const existing = festiviMapUtente.get(f.data);
+      // Se non c'è una festività per questa data, o se questa festività ha una sede specifica
+      // (che ha priorità su quella globale), la impostiamo
+      if (!existing || (f.sede !== null && existing.sede === null)) {
+        festiviMapUtente.set(f.data, f);
+      }
+    });
+
+    console.log(`GrigliaPresenze - User: ${user.nome} ${user.cognome}, Sede: ${user.sede}, Festività: ${festiviMapUtente.size}`);
+
     const giorni: GiornoCalendario[] = giorniMese.map((dataObj) => {
       const data = toISODate(dataObj);
-      const festivo = festiviMap.get(data);
+      const festivo = festiviMapUtente.get(data);
       const presenza = presenzeMap.get(`${user.id}-${data}`);
       const futuro = isFuturo(data);
 
       let tipo: GiornoCalendario['tipo'] = 'normale';
-      if (futuro) tipo = 'futuro';
-      else if (festivo?.tipo === 'festivo') tipo = 'festivo';
+      // I festivi hanno priorità sui giorni futuri per visibilità
+      if (festivo?.tipo === 'festivo') tipo = 'festivo';
       else if (festivo?.tipo === 'semifestivo') tipo = 'semifestivo';
+      else if (futuro) tipo = 'futuro';
 
       return {
         data,
@@ -54,14 +75,38 @@ export function GrigliaPresenze({
       };
     });
 
-    // Calcola ore totali del mese per l'utente (presenza + straordinari)
-    const ore_totali = giorni.reduce((sum, g) => {
-      const orePresenza = g.presenza?.ore_totali || 0;
-      const straordinari = g.presenza?.straordinari || 0;
-      return sum + orePresenza + straordinari;
-    }, 0);
+    // Calcola totali mensili dettagliati per l'utente
+    const totaliMensili = giorni.reduce((acc, g) => {
+      if (!g.presenza) return acc;
 
-    return { user, giorni, ore_totali };
+      const p = g.presenza;
+      const orePresenza = p.ore_totali || 0;
+      const straordinari = p.straordinari || 0;
+
+      // Ore ordinarie = ore totali - straordinari
+      const oreOrdinarie = orePresenza - straordinari;
+
+      return {
+        oreOrdinarie: acc.oreOrdinarie + oreOrdinarie,
+        straordinari: acc.straordinari + straordinari,
+        malattia: acc.malattia + (p.malattia || 0),
+        legge_104: acc.legge_104 + (p.legge_104 || 0),
+        ferie: acc.ferie + (p.ferie || 0),
+        trasferte: acc.trasferte + (p.trasferta ? 1 : 0),
+      };
+    }, {
+      oreOrdinarie: 0,
+      straordinari: 0,
+      malattia: 0,
+      legge_104: 0,
+      ferie: 0,
+      trasferte: 0,
+    });
+
+    // Mantieni ore_totali per compatibilità con altri componenti
+    const ore_totali = totaliMensili.oreOrdinarie + totaliMensili.straordinari;
+
+    return { user, giorni, ore_totali, totaliMensili };
   });
 
   // Determina classe CSS per la cella
@@ -104,6 +149,32 @@ export function GrigliaPresenze({
     }
 
     if (giorno.tipo === 'futuro') {
+      // Se ci sono ferie/assenze programmate, mostrale
+      if (giorno.presenza) {
+        const p = giorno.presenza;
+        return (
+          <div className="text-[10px] leading-tight text-gray-500">
+            {p.ferie > 0 && (
+              <span className="bg-green-100 text-green-800 px-1 rounded text-[9px]">
+                FER:{formatOreTotali(p.ferie)}
+              </span>
+            )}
+            {p.malattia > 0 && (
+              <span className="bg-red-100 text-red-800 px-1 rounded text-[9px] ml-0.5">
+                MAL:{formatOreTotali(p.malattia)}
+              </span>
+            )}
+            {p.legge_104 > 0 && (
+              <span className="bg-orange-100 text-orange-800 px-1 rounded text-[9px] ml-0.5">
+                L104:{formatOreTotali(p.legge_104)}
+              </span>
+            )}
+            {!p.ferie && !p.malattia && !p.legge_104 && (
+              <div className="text-center text-xs text-gray-400">-</div>
+            )}
+          </div>
+        );
+      }
       return <div className="text-center text-xs text-gray-400">-</div>;
     }
 
@@ -121,35 +192,35 @@ export function GrigliaPresenze({
               {formatTime(p.ingresso_pomeriggio)}-{formatTime(p.uscita_pomeriggio)}
             </div>
           )}
-          <div className="font-bold mt-0.5">{p.ore_totali.toFixed(1)}h</div>
+          <div className="font-bold mt-0.5">{formatOreTotali(p.ore_totali)}</div>
 
           {/* Indicatori aggiuntivi */}
           <div className="flex flex-wrap gap-0.5 mt-1">
             {p.straordinari > 0 && (
               <span className="bg-blue-100 text-blue-800 px-1 rounded text-[9px]">
-                ST:{p.straordinari}h
+                STR/SUP:{formatOreTotali(p.straordinari)}
               </span>
             )}
-            {p.ore_trasferte > 0 && (
+            {p.trasferta && (
               <span className="bg-purple-100 text-purple-800 px-1 rounded text-[9px]">
-                TR:{p.ore_trasferte}h
+                TR
               </span>
             )}
             {p.malattia > 0 && (
               <span className="bg-red-100 text-red-800 px-1 rounded text-[9px]">
-                MAL:{p.malattia}h
+                MAL:{formatOreTotali(p.malattia)}
               </span>
             )}
           </div>
           <div className="flex flex-wrap gap-0.5 mt-0.5">
             {p.legge_104 > 0 && (
               <span className="bg-orange-100 text-orange-800 px-1 rounded text-[9px]">
-                L104:{p.legge_104}h
+                L104:{formatOreTotali(p.legge_104)}
               </span>
             )}
             {p.ferie > 0 && (
               <span className="bg-green-100 text-green-800 px-1 rounded text-[9px]">
-                FER:{p.ferie}h
+                FER:{formatOreTotali(p.ferie)}
               </span>
             )}
           </div>
@@ -194,7 +265,7 @@ export function GrigliaPresenze({
                   key={giorno.data}
                   className={getCellaClassName(giorno)}
                   onClick={() => {
-                    if (giorno.tipo !== 'festivo' && giorno.tipo !== 'futuro') {
+                    if (giorno.tipo !== 'festivo') {
                       onCellClick(riga.user.id, giorno.data);
                     }
                   }}
@@ -202,8 +273,37 @@ export function GrigliaPresenze({
                   {renderCellaContent(giorno)}
                 </td>
               ))}
-              <td className="text-center font-bold bg-gray-50 border-l-2 border-gray-300">
-                {riga.ore_totali.toFixed(1)}h
+              <td className="bg-gray-50 border-l-2 border-gray-300 p-2">
+                <div className="text-[10px] space-y-0.5">
+                  <div className="font-bold text-gray-900">
+                    Ord: {formatOreTotali(riga.totaliMensili.oreOrdinarie)}
+                  </div>
+                  {riga.totaliMensili.straordinari > 0 && (
+                    <div className="text-blue-700">
+                      Str/Sup: {formatOreTotali(riga.totaliMensili.straordinari)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.malattia > 0 && (
+                    <div className="text-red-700">
+                      Mal: {formatOreTotali(riga.totaliMensili.malattia)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.legge_104 > 0 && (
+                    <div className="text-orange-700">
+                      L104: {formatOreTotali(riga.totaliMensili.legge_104)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.ferie > 0 && (
+                    <div className="text-green-700">
+                      Fer: {formatOreTotali(riga.totaliMensili.ferie)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.trasferte > 0 && (
+                    <div className="text-purple-700">
+                      Tras: {riga.totaliMensili.trasferte}gg
+                    </div>
+                  )}
+                </div>
               </td>
             </tr>
           ))}

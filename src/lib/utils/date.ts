@@ -1,5 +1,5 @@
 // Utility functions per gestione date e calcolo ore
-import { format, parse, parseISO, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isAfter, isBefore, isSameDay, getYear } from 'date-fns';
+import { format, parse, parseISO, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isAfter, isBefore, isSameDay, getYear, startOfDay } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 /**
@@ -118,11 +118,12 @@ export function isOggi(data: Date | string): boolean {
 }
 
 /**
- * Verifica se una data è nel futuro
+ * Verifica se una data è nel futuro (confronta solo le date, ignorando l'ora)
  */
 export function isFuturo(data: Date | string): boolean {
   const d = typeof data === 'string' ? parseISO(data) : data;
-  return isAfter(d, new Date());
+  // Confronta solo le date, ignorando l'ora
+  return isAfter(startOfDay(d), startOfDay(new Date()));
 }
 
 /**
@@ -159,4 +160,17 @@ export function isPrima(orario1: string, orario2: string): boolean {
   const minuti2Totali = ore2 * 60 + minuti2;
 
   return minuti1Totali < minuti2Totali;
+}
+
+/**
+ * Formatta ore decimali in formato "Xh Ym" (base 60)
+ * Es. 5.5 -> "5h 30m", 8 -> "8h", 101.5 -> "101h 30m"
+ */
+export function formatOreTotali(ore: number): string {
+  const oreIntere = Math.floor(ore);
+  const minuti = Math.round((ore - oreIntere) * 60);
+  if (minuti === 0) {
+    return `${oreIntere}h`;
+  }
+  return `${oreIntere}h ${minuti}m`;
 }

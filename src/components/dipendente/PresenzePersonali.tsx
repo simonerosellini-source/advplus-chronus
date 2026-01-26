@@ -14,8 +14,9 @@ import {
   formatDateIT,
   toISODate,
   isFuturo,
+  formatOreTotali,
 } from '@/lib/utils/date';
-import type { Presenza, GiornoFestivo, GiornoCalendario } from '@/types/database.types';
+import type { User, Presenza, GiornoFestivo, GiornoCalendario } from '@/types/database.types';
 import { Badge } from '@/components/ui/Badge';
 
 interface PresenzePersonaliProps {
@@ -33,6 +34,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
     data: string;
     presenza?: Presenza;
   } | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   const { showToast } = useToast();
   const supabase = createClient();
@@ -40,6 +42,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   // Carica dati
   useEffect(() => {
     loadData();
+    loadLockStatus();
   }, [anno, mese]);
 
   async function loadData() {
@@ -59,14 +62,34 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
 
       if (presenzeError) throw presenzeError;
 
+      // Carica sede dell'utente
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('sede')
+        .eq('id', userId)
+        .single();
+
+      if (userError) throw userError;
+
       // Carica festività dell'anno
+      // Include festività globali (sede = null) e festività della sede dell'utente
+      const userSede = (userData as Pick<User, 'sede'>).sede;
+
+      // Debug: log per verificare cosa viene caricato
+      console.log('Caricamento festività per anno:', anno, 'sede utente:', userSede);
+
+      // Filtra per sede: include festività globali (sede IS NULL) e festività della sede utente
+      const sedeFilter = userSede ? `sede.is.null,sede.eq.${userSede}` : 'sede.is.null';
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
+        .or(sedeFilter)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;
+
+      console.log('Festività caricate:', festiviData?.length, festiviData);
 
       setPresenze(presenzeData || []);
       setFestivi(festiviData || []);
@@ -75,6 +98,22 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
       showToast('Errore durante il caricamento dei dati', 'error');
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Carica lo stato del lock per il mese corrente
+  async function loadLockStatus() {
+    try {
+      const response = await fetch(`/api/presenze-locks/status?anno=${anno}&mese=${mese}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsLocked(data.locked);
+      } else {
+        console.error('Errore durante il caricamento dello stato del lock:', data.error);
+      }
+    } catch (error: any) {
+      console.error('Errore durante il caricamento dello stato del lock:', error);
     }
   }
 
@@ -124,6 +163,11 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   const festiviMap = new Map(festivi.map((f) => [f.data, f]));
   const presenzeMap = new Map(presenze.map((p) => [p.data, p]));
 
+  // Debug: verifica formato date
+  console.log('Mese visualizzato:', mese, 'Anno:', anno);
+  console.log('festiviMap keys:', Array.from(festiviMap.keys()));
+  console.log('Esempio data dal calendario:', giorniMese.length > 0 ? toISODate(giorniMese[0]) : 'N/A');
+
   // Prepara giorni con dati
   const giorni: GiornoCalendario[] = giorniMese.map((dataObj) => {
     const data = toISODate(dataObj);
@@ -132,9 +176,10 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
     const futuro = isFuturo(data);
 
     let tipo: GiornoCalendario['tipo'] = 'normale';
-    if (futuro) tipo = 'futuro';
-    else if (festivo?.tipo === 'festivo') tipo = 'festivo';
+    // I festivi hanno priorità sui giorni futuri per visibilità
+    if (festivo?.tipo === 'festivo') tipo = 'festivo';
     else if (festivo?.tipo === 'semifestivo') tipo = 'semifestivo';
+    else if (futuro) tipo = 'futuro';
 
     return {
       data,
@@ -167,7 +212,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
             </div>
             <div>
               <p className="text-sm text-gray-600">Ore Totali</p>
-              <p className="text-2xl font-bold text-primary">{oreTotaliMese.toFixed(1)}h</p>
+              <p className="text-2xl font-bold text-primary">{formatOreTotali(oreTotaliMese)}</p>
             </div>
           </div>
         </div>
@@ -203,7 +248,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
             </div>
             <div>
               <p className="text-sm text-gray-600">Media Ore/Giorno</p>
-              <p className="text-2xl font-bold text-secondary">{mediaOreGiornaliere.toFixed(1)}h</p>
+              <p className="text-2xl font-bold text-secondary">{formatOreTotali(mediaOreGiornaliere)}</p>
             </div>
           </div>
         </div>
@@ -274,7 +319,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                 ? 'border-gray-300'
                 : 'border-gray-200';
 
-            const isClickable = giorno.tipo !== 'festivo' && giorno.tipo !== 'futuro';
+            const isClickable = giorno.tipo !== 'festivo';
 
             return (
               <div
@@ -311,24 +356,24 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                       </div>
                     )}
                     <div className="font-bold text-primary mt-1">
-                      {giorno.presenza.ore_totali.toFixed(1)}h
+                      {formatOreTotali(giorno.presenza.ore_totali)}
                     </div>
 
                     {/* Badge per campi aggiuntivi */}
                     {(giorno.presenza.straordinari > 0 ||
-                      giorno.presenza.ore_trasferte > 0 ||
+                      giorno.presenza.trasferta ||
                       giorno.presenza.malattia > 0 ||
                       giorno.presenza.legge_104 > 0 ||
                       giorno.presenza.ferie > 0) && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {giorno.presenza.straordinari > 0 && (
                           <span className="bg-blue-100 text-blue-800 px-1 rounded text-[8px]">
-                            ST:{giorno.presenza.straordinari}h
+                            STR/SUP:{giorno.presenza.straordinari}h
                           </span>
                         )}
-                        {giorno.presenza.ore_trasferte > 0 && (
+                        {giorno.presenza.trasferta && (
                           <span className="bg-purple-100 text-purple-800 px-1 rounded text-[8px]">
-                            TR:{giorno.presenza.ore_trasferte}h
+                            TR
                           </span>
                         )}
                         {giorno.presenza.malattia > 0 && (
@@ -360,6 +405,10 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                 {!giorno.presenza && giorno.tipo === 'normale' && (
                   <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
                 )}
+
+                {!giorno.presenza && giorno.tipo === 'futuro' && (
+                  <div className="text-xs text-gray-400 text-center mt-4">Click per programmare ferie</div>
+                )}
               </div>
             );
           })}
@@ -374,6 +423,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
           presenza={selectedPresenza.presenza}
           onClose={() => setSelectedPresenza(null)}
           onSave={handleSavePresenza}
+          isLocked={isLocked}
         />
       )}
     </div>

@@ -14,10 +14,7 @@ export async function POST(request: NextRequest) {
       legge_104,
       importo_trasferte,
       sede,
-      ingresso_mattina_default,
-      uscita_mattina_default,
-      ingresso_pomeriggio_default,
-      uscita_pomeriggio_default
+      orari_settimanali
     } = body;
 
     // Validazione
@@ -42,10 +39,7 @@ export async function POST(request: NextRequest) {
         legge_104: legge_104 || false,
         importo_trasferte: importo_trasferte || 0,
         sede: sede || 'Viareggio',
-        ingresso_mattina_default: ingresso_mattina_default || null,
-        uscita_mattina_default: uscita_mattina_default || null,
-        ingresso_pomeriggio_default: ingresso_pomeriggio_default || null,
-        uscita_pomeriggio_default: uscita_pomeriggio_default || null,
+        orari_settimanali: orari_settimanali || null,
       },
     });
 

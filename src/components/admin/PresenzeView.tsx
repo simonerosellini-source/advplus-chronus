@@ -2,14 +2,14 @@
 
 // Vista Presenze - Griglia tipo Excel
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Download, Upload, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Upload, Plus, Lock, Unlock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner, TableSkeleton } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
 import { GrigliaPresenze } from './GrigliaPresenze';
 import { ModalPresenza } from './ModalPresenza';
 import { ModalImport } from './ModalImport';
-import { getGiorniMese, MESI_ITALIANI, toISODate } from '@/lib/utils/date';
+import { getGiorniMese, MESI_ITALIANI, toISODate, formatOreTotali } from '@/lib/utils/date';
 import type { User, Presenza, GiornoFestivo, RigaPresenze } from '@/types/database.types';
 import * as XLSX from 'xlsx';
 
@@ -26,6 +26,8 @@ export function PresenzeView() {
     presenza?: Presenza;
   } | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockLoading, setLockLoading] = useState(false);
 
   const { showToast } = useToast();
   const supabase = createClient();
@@ -33,6 +35,7 @@ export function PresenzeView() {
   // Carica dati
   useEffect(() => {
     loadData();
+    loadLockStatus();
   }, [anno, mese]);
 
   async function loadData() {
@@ -60,17 +63,38 @@ export function PresenzeView() {
       if (presenzeError) throw presenzeError;
 
       // Carica festività dell'anno
+      // Include festività globali (sede = null) e festività delle sedi degli utenti
+      const sediUtenti: string[] = [];
+      if (usersData) {
+        (usersData as User[]).forEach(u => {
+          if (u.sede) sediUtenti.push(u.sede);
+        });
+      }
+      const sediUniche = [...new Set(sediUtenti)];
+
+      // Filtra per sede: include festività globali (sede IS NULL) e festività delle sedi degli utenti
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] Caricamento festività admin per anno:`, anno, 'sedi:', sediUniche);
+
+      const sedeFilter = sediUniche.length > 0
+        ? `sede.is.null,sede.in.(${sediUniche.join(',')})`
+        : 'sede.is.null';
       const { data: festiviData, error: festiviError } = await supabase
         .from('giorni_festivi')
         .select('*')
         .eq('anno', anno)
+        .or(sedeFilter)
         .order('data', { ascending: true });
 
       if (festiviError) throw festiviError;
 
+      console.log(`[${timestamp}] Festività admin caricate:`, festiviData?.length, festiviData);
+
       setUsers(usersData || []);
       setPresenze(presenzeData || []);
       setFestivi(festiviData || []);
+
+      console.log(`[${timestamp}] State aggiornato`);
     } catch (error: any) {
       console.error('Errore caricamento dati:', error);
       const errorMessage = error?.message || 'Errore durante il caricamento dei dati';
@@ -104,6 +128,50 @@ export function PresenzeView() {
     setMese(new Date().getMonth() + 1);
   }
 
+  // Carica lo stato del lock per il mese corrente
+  async function loadLockStatus() {
+    try {
+      const response = await fetch(`/api/presenze-locks/status?anno=${anno}&mese=${mese}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsLocked(data.locked);
+      } else {
+        console.error('Errore durante il caricamento dello stato del lock:', data.error);
+      }
+    } catch (error: any) {
+      console.error('Errore durante il caricamento dello stato del lock:', error);
+    }
+  }
+
+  // Toggle del lock per il mese corrente
+  async function handleToggleLock() {
+    setLockLoading(true);
+    try {
+      const response = await fetch('/api/presenze-locks/toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ anno, mese }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsLocked(data.locked);
+        showToast(data.message, 'success');
+      } else {
+        showToast(data.error || 'Errore durante il toggle del lock', 'error');
+      }
+    } catch (error: any) {
+      console.error('Errore durante il toggle del lock:', error);
+      showToast('Errore durante il toggle del lock', 'error');
+    } finally {
+      setLockLoading(false);
+    }
+  }
+
   // Gestione click su cella
   function handleCellClick(userId: string, data: string) {
     const presenza = presenze.find((p) => p.user_id === userId && p.data === data);
@@ -125,12 +193,18 @@ export function PresenzeView() {
       // Crea i dati per Excel
       const excelData = [];
 
-      // Header row con giorni del mese
+      // Header row con giorni del mese e nuove colonne totali
       const headerRow = ['Nome', 'Cognome'];
       giorni.forEach(giorno => {
         headerRow.push(`${giorno.getDate()}`);
       });
-      headerRow.push('Totale Ore');
+      headerRow.push('Ore Lavorate');
+      headerRow.push('Ore Straordinario/Suppletivo');
+      headerRow.push('Ore Ferie');
+      headerRow.push('Ore Malattie');
+      headerRow.push('Ore 104');
+      headerRow.push('N° Trasferte');
+      headerRow.push('Importo Trasferte');
       excelData.push(headerRow);
 
       // Seconda riga con giorni settimana
@@ -139,36 +213,55 @@ export function PresenzeView() {
         const giornoSettimana = giorno.toLocaleDateString('it-IT', { weekday: 'short' });
         dayNamesRow.push(giornoSettimana);
       });
-      dayNamesRow.push('');
+      // Aggiungi celle vuote per le nuove colonne totali
+      dayNamesRow.push('', '', '', '', '', '', '');
       excelData.push(dayNamesRow);
 
       // Righe per ogni utente
       users.forEach(user => {
         const row = [user.nome, user.cognome];
+
+        // Variabili per calcolare i totali
         let totaleOreUtente = 0;
+        let totaleStraordinari = 0;
+        let totaleFerie = 0;
+        let totaleMalattie = 0;
+        let totale104 = 0;
+        let numeroTrasferte = 0;
 
         giorni.forEach(giorno => {
           const dataISO = toISODate(giorno);
           const presenza = presenze.find(
             p => p.user_id === user.id && p.data === dataISO
           );
-          const festivo = festivi.find(f => f.data === dataISO);
+          // Filtra festività per sede: include solo globali (sede = null) o quelle della sede utente
+          const festivo = festivi.find(f =>
+            f.data === dataISO &&
+            (f.sede === null || f.sede === user.sede)
+          );
 
           if (festivo) {
             row.push(festivo.tipo === 'festivo' ? 'FEST' : 'SEMI');
           } else if (presenza) {
             const ore = presenza.ore_totali || 0;
             totaleOreUtente += ore;
+            totaleStraordinari += presenza.straordinari || 0;
+            totaleFerie += presenza.ferie || 0;
+            totaleMalattie += presenza.malattia || 0;
+            totale104 += presenza.legge_104 || 0;
+            if (presenza.trasferta) {
+              numeroTrasferte += 1;
+            }
 
             // Costruisci stringa con tutti i dettagli
-            let cellValue = `${ore}h`;
+            let cellValue = formatOreTotali(ore);
             const dettagli = [];
 
             if (presenza.straordinari > 0) {
-              dettagli.push(`ST:${presenza.straordinari}h`);
+              dettagli.push(`STR/SUP:${presenza.straordinari}h`);
             }
-            if (presenza.ore_trasferte > 0) {
-              dettagli.push(`TR:${presenza.ore_trasferte}h`);
+            if (presenza.trasferta) {
+              dettagli.push(`TR`);
             }
             if (presenza.malattia > 0) {
               dettagli.push(`MAL:${presenza.malattia}h`);
@@ -190,7 +283,21 @@ export function PresenzeView() {
           }
         });
 
-        row.push(`${totaleOreUtente.toFixed(1)}h`);
+        // Calcola ore lavorate (ore ordinarie = totale - straordinari)
+        const oreLavorate = totaleOreUtente - totaleStraordinari;
+
+        // Calcola importo trasferte (numero giorni * importo per trasferta)
+        const importoTrasferte = numeroTrasferte * (user.importo_trasferte || 0);
+
+        // Aggiungi colonne totali
+        row.push(formatOreTotali(oreLavorate));
+        row.push(formatOreTotali(totaleStraordinari));
+        row.push(formatOreTotali(totaleFerie));
+        row.push(formatOreTotali(totaleMalattie));
+        row.push(formatOreTotali(totale104));
+        row.push(numeroTrasferte > 0 ? numeroTrasferte.toString() : '-');
+        row.push(importoTrasferte > 0 ? `€${importoTrasferte.toFixed(2)}` : '-');
+
         excelData.push(row);
       });
 
@@ -201,7 +308,14 @@ export function PresenzeView() {
       // Imposta larghezza colonne
       const colWidths = [{ wch: 15 }, { wch: 15 }];
       giorni.forEach(() => colWidths.push({ wch: 8 }));
-      colWidths.push({ wch: 12 });
+      // Aggiungi larghezza per le nuove colonne totali
+      colWidths.push({ wch: 15 }); // Ore Lavorate
+      colWidths.push({ wch: 20 }); // Ore Straordinario/Suppletivo
+      colWidths.push({ wch: 12 }); // Ore Ferie
+      colWidths.push({ wch: 12 }); // Ore Malattie
+      colWidths.push({ wch: 12 }); // Ore 104
+      colWidths.push({ wch: 15 }); // N° Trasferte
+      colWidths.push({ wch: 18 }); // Importo Trasferte
       ws['!cols'] = colWidths;
 
       // Aggiungi worksheet al workbook
@@ -217,6 +331,9 @@ export function PresenzeView() {
       showToast('Errore durante l\'esportazione', 'error');
     }
   }
+
+  // Debug: log festività prima del render
+  console.log('PresenzeView render - festivi.length:', festivi.length, 'mese:', mese, 'anno:', anno);
 
   if (loading) {
     return (
@@ -260,6 +377,27 @@ export function PresenzeView() {
 
         {/* Azioni */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleToggleLock}
+            disabled={lockLoading}
+            className={`text-sm py-2 px-3 flex items-center gap-2 ${
+              isLocked
+                ? 'btn-danger'
+                : 'btn-primary'
+            }`}
+            title={isLocked ? 'Sblocca presenze per tutti gli utenti' : 'Blocca presenze per utenti non admin'}
+          >
+            {lockLoading ? (
+              <LoadingSpinner className="h-4 w-4" />
+            ) : isLocked ? (
+              <Lock className="h-4 w-4" />
+            ) : (
+              <Unlock className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">
+              {isLocked ? 'Sblocca Presenze' : 'Blocca Presenze'}
+            </span>
+          </button>
           <button onClick={() => setShowImportModal(true)} className="btn-outline text-sm py-2 px-3 flex items-center gap-2" title="Importa presenze da file">
             <Upload className="h-4 w-4" />
             <span className="hidden sm:inline">Importa</span>
@@ -298,7 +436,10 @@ export function PresenzeView() {
         mese={mese}
         users={users}
         presenze={presenze}
-        festivi={festivi}
+        festivi={(() => {
+          console.log('Passando festivi a GrigliaPresenze:', festivi.length, 'festività');
+          return festivi;
+        })()}
         onCellClick={handleCellClick}
       />
 
@@ -310,6 +451,7 @@ export function PresenzeView() {
           presenza={selectedPresenza.presenza}
           onClose={() => setSelectedPresenza(null)}
           onSave={handleSavePresenza}
+          isLocked={isLocked}
         />
       )}
 
