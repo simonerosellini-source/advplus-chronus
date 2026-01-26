@@ -388,7 +388,7 @@ export function PresenzeView() {
             title={isLocked ? 'Sblocca presenze per tutti gli utenti' : 'Blocca presenze per utenti non admin'}
           >
             {lockLoading ? (
-              <LoadingSpinner size="sm" />
+              <LoadingSpinner className="h-4 w-4" />
             ) : isLocked ? (
               <Lock className="h-4 w-4" />
             ) : (
