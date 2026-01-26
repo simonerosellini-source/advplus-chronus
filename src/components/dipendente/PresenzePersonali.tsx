@@ -158,9 +158,10 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
     const futuro = isFuturo(data);
 
     let tipo: GiornoCalendario['tipo'] = 'normale';
-    if (futuro) tipo = 'futuro';
-    else if (festivo?.tipo === 'festivo') tipo = 'festivo';
+    // I festivi hanno priorità sui giorni futuri per visibilità
+    if (festivo?.tipo === 'festivo') tipo = 'festivo';
     else if (festivo?.tipo === 'semifestivo') tipo = 'semifestivo';
+    else if (futuro) tipo = 'futuro';
 
     return {
       data,
