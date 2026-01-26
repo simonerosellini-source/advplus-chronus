@@ -47,9 +47,10 @@ export async function POST(request: NextRequest) {
       // Toggle dello stato esistente
       newLockedState = !existingLock.locked;
 
+      const updateData: Partial<PresenzeLock> = { locked: newLockedState };
       const { error: updateError } = await adminClient
         .from('presenze_locks')
-        .update({ locked: newLockedState })
+        .update(updateData)
         .eq('anno', anno)
         .eq('mese', mese);
 
@@ -62,9 +63,14 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Crea nuovo record (default: locked = true)
+      const insertData: Omit<PresenzeLock, 'id' | 'created_at' | 'updated_at'> = {
+        anno,
+        mese,
+        locked: true
+      };
       const { error: insertError } = await adminClient
         .from('presenze_locks')
-        .insert({ anno, mese, locked: true });
+        .insert(insertData);
 
       if (insertError) {
         console.error('Errore durante la creazione del lock:', insertError);
