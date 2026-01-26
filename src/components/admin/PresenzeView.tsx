@@ -146,12 +146,17 @@ export function PresenzeView() {
       // Crea i dati per Excel
       const excelData = [];
 
-      // Header row con giorni del mese
+      // Header row con giorni del mese e nuove colonne totali
       const headerRow = ['Nome', 'Cognome'];
       giorni.forEach(giorno => {
         headerRow.push(`${giorno.getDate()}`);
       });
-      headerRow.push('Totale Ore');
+      headerRow.push('Ore Lavorate');
+      headerRow.push('Ore Straordinario/Suppletivo');
+      headerRow.push('Ore Ferie');
+      headerRow.push('Ore Malattie');
+      headerRow.push('Ore 104');
+      headerRow.push('N° Trasferte');
       excelData.push(headerRow);
 
       // Seconda riga con giorni settimana
@@ -160,13 +165,21 @@ export function PresenzeView() {
         const giornoSettimana = giorno.toLocaleDateString('it-IT', { weekday: 'short' });
         dayNamesRow.push(giornoSettimana);
       });
-      dayNamesRow.push('');
+      // Aggiungi celle vuote per le nuove colonne totali
+      dayNamesRow.push('', '', '', '', '', '');
       excelData.push(dayNamesRow);
 
       // Righe per ogni utente
       users.forEach(user => {
         const row = [user.nome, user.cognome];
+
+        // Variabili per calcolare i totali
         let totaleOreUtente = 0;
+        let totaleStraordinari = 0;
+        let totaleFerie = 0;
+        let totaleMalattie = 0;
+        let totale104 = 0;
+        let numeroTrasferte = 0;
 
         giorni.forEach(giorno => {
           const dataISO = toISODate(giorno);
@@ -184,6 +197,13 @@ export function PresenzeView() {
           } else if (presenza) {
             const ore = presenza.ore_totali || 0;
             totaleOreUtente += ore;
+            totaleStraordinari += presenza.straordinari || 0;
+            totaleFerie += presenza.ferie || 0;
+            totaleMalattie += presenza.malattia || 0;
+            totale104 += presenza.legge_104 || 0;
+            if (presenza.trasferta) {
+              numeroTrasferte += 1;
+            }
 
             // Costruisci stringa con tutti i dettagli
             let cellValue = formatOreTotali(ore);
@@ -215,7 +235,20 @@ export function PresenzeView() {
           }
         });
 
-        row.push(formatOreTotali(totaleOreUtente));
+        // Calcola ore lavorate (ore ordinarie = totale - straordinari)
+        const oreLavorate = totaleOreUtente - totaleStraordinari;
+
+        // Calcola importo trasferte (numero giorni * importo per trasferta)
+        const importoTrasferte = numeroTrasferte * (user.importo_trasferte || 0);
+
+        // Aggiungi colonne totali
+        row.push(formatOreTotali(oreLavorate));
+        row.push(formatOreTotali(totaleStraordinari));
+        row.push(formatOreTotali(totaleFerie));
+        row.push(formatOreTotali(totaleMalattie));
+        row.push(formatOreTotali(totale104));
+        row.push(importoTrasferte > 0 ? `€${importoTrasferte.toFixed(2)}` : '-');
+
         excelData.push(row);
       });
 
@@ -226,7 +259,13 @@ export function PresenzeView() {
       // Imposta larghezza colonne
       const colWidths = [{ wch: 15 }, { wch: 15 }];
       giorni.forEach(() => colWidths.push({ wch: 8 }));
-      colWidths.push({ wch: 12 });
+      // Aggiungi larghezza per le nuove colonne totali
+      colWidths.push({ wch: 15 }); // Ore Lavorate
+      colWidths.push({ wch: 20 }); // Ore Straordinario/Suppletivo
+      colWidths.push({ wch: 12 }); // Ore Ferie
+      colWidths.push({ wch: 12 }); // Ore Malattie
+      colWidths.push({ wch: 12 }); // Ore 104
+      colWidths.push({ wch: 15 }); // N° Trasferte
       ws['!cols'] = colWidths;
 
       // Aggiungi worksheet al workbook
