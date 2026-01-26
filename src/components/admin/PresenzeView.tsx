@@ -157,6 +157,7 @@ export function PresenzeView() {
       headerRow.push('Ore Malattie');
       headerRow.push('Ore 104');
       headerRow.push('N° Trasferte');
+      headerRow.push('Importo Trasferte');
       excelData.push(headerRow);
 
       // Seconda riga con giorni settimana
@@ -166,7 +167,7 @@ export function PresenzeView() {
         dayNamesRow.push(giornoSettimana);
       });
       // Aggiungi celle vuote per le nuove colonne totali
-      dayNamesRow.push('', '', '', '', '', '');
+      dayNamesRow.push('', '', '', '', '', '', '');
       excelData.push(dayNamesRow);
 
       // Righe per ogni utente
@@ -247,6 +248,7 @@ export function PresenzeView() {
         row.push(formatOreTotali(totaleFerie));
         row.push(formatOreTotali(totaleMalattie));
         row.push(formatOreTotali(totale104));
+        row.push(numeroTrasferte > 0 ? numeroTrasferte.toString() : '-');
         row.push(importoTrasferte > 0 ? `€${importoTrasferte.toFixed(2)}` : '-');
 
         excelData.push(row);
@@ -266,6 +268,7 @@ export function PresenzeView() {
       colWidths.push({ wch: 12 }); // Ore Malattie
       colWidths.push({ wch: 12 }); // Ore 104
       colWidths.push({ wch: 15 }); // N° Trasferte
+      colWidths.push({ wch: 18 }); // Importo Trasferte
       ws['!cols'] = colWidths;
 
       // Aggiungi worksheet al workbook
