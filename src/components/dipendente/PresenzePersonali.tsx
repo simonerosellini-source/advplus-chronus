@@ -34,6 +34,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
     data: string;
     presenza?: Presenza;
   } | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   const { showToast } = useToast();
   const supabase = createClient();
@@ -41,6 +42,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   // Carica dati
   useEffect(() => {
     loadData();
+    loadLockStatus();
   }, [anno, mese]);
 
   async function loadData() {
@@ -96,6 +98,22 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
       showToast('Errore durante il caricamento dei dati', 'error');
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Carica lo stato del lock per il mese corrente
+  async function loadLockStatus() {
+    try {
+      const response = await fetch(`/api/presenze-locks/status?anno=${anno}&mese=${mese}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsLocked(data.locked);
+      } else {
+        console.error('Errore durante il caricamento dello stato del lock:', data.error);
+      }
+    } catch (error: any) {
+      console.error('Errore durante il caricamento dello stato del lock:', error);
     }
   }
 
@@ -405,6 +423,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
           presenza={selectedPresenza.presenza}
           onClose={() => setSelectedPresenza(null)}
           onSave={handleSavePresenza}
+          isLocked={isLocked}
         />
       )}
     </div>

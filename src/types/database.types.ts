@@ -70,6 +70,15 @@ export interface GiornoFestivo {
   created_at: string;
 }
 
+export interface PresenzeLock {
+  id: string;
+  anno: number;
+  mese: number;
+  locked: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // Tipi per le form
 export interface UserFormData {
   email: string;
@@ -161,6 +170,11 @@ export interface Database {
         Row: GiornoFestivo;
         Insert: Omit<GiornoFestivo, 'id' | 'created_at'>;
         Update: Partial<Omit<GiornoFestivo, 'id' | 'created_at'>>;
+      };
+      presenze_locks: {
+        Row: PresenzeLock;
+        Insert: Omit<PresenzeLock, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<PresenzeLock, 'id' | 'created_at' | 'updated_at'>>;
       };
     };
   };

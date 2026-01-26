@@ -29,13 +29,15 @@ interface ModalPresenzaProps {
   presenza?: Presenza;
   onClose: () => void;
   onSave: () => void;
+  isLocked?: boolean;
 }
 
-export function ModalPresenza({ userId, data, presenza, onClose, onSave }: ModalPresenzaProps) {
+export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocked = false }: ModalPresenzaProps) {
   const [loading, setLoading] = useState(false);
   const [userName, setUserName] = useState('');
   const [orariSettimanali, setOrariSettimanali] = useState<OrariSettimanali | null>(null);
   const [orePreviste, setOrePreviste] = useState<number>(0);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
   const [formData, setFormData] = useState({
     ingresso_mattina: presenza?.ingresso_mattina ? formatTime(presenza.ingresso_mattina) : '',
     uscita_mattina: presenza?.uscita_mattina ? formatTime(presenza.uscita_mattina) : '',
@@ -59,6 +61,20 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
   // Carica nome utente e orari settimanali
   useEffect(() => {
     async function loadUserData() {
+      // Verifica se l'utente corrente è un admin
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const { data: currentUserData } = await supabase
+          .from('users')
+          .select('ruolo')
+          .eq('id', currentUser.id)
+          .single() as { data: { ruolo: string } | null };
+
+        if (currentUserData) {
+          setIsUserAdmin(currentUserData.ruolo === 'amministratore');
+        }
+      }
+
       const { data: userData } = await supabase
         .from('users')
         .select('nome, cognome, orari_settimanali')
@@ -182,6 +198,12 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
 
   // Salvataggio
   async function handleSave() {
+    // Controlla se il mese è bloccato e l'utente non è admin
+    if (isLocked && !isUserAdmin) {
+      showToast('Le presenze per questo mese sono bloccate. Contatta un amministratore.', 'error');
+      return;
+    }
+
     setLoading(true);
     setErrors({});
 
@@ -248,6 +270,12 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
   async function handleDelete() {
     if (!presenza) return;
 
+    // Controlla se il mese è bloccato e l'utente non è admin
+    if (isLocked && !isUserAdmin) {
+      showToast('Le presenze per questo mese sono bloccate. Contatta un amministratore.', 'error');
+      return;
+    }
+
     if (!confirm('Sei sicuro di voler eliminare questa presenza?')) return;
 
     setLoading(true);
@@ -283,6 +311,24 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
           </div>
         </div>
 
+        {/* Messaggio per mese bloccato */}
+        {isLocked && !isUserAdmin && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">
+                  <strong>Mese bloccato:</strong> Le presenze per questo mese sono state bloccate dall'amministratore. Non è possibile modificare o eliminare le presenze. Contatta un amministratore per ulteriori informazioni.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Messaggio per date future */}
         {dataFutura && (
           <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
@@ -314,7 +360,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.ingresso_mattina}
                 onChange={(val) => handleChange('ingresso_mattina', val)}
                 error={!!errors.ingresso_mattina}
-                disabled={dataFutura}
+                disabled={dataFutura || (isLocked && !isUserAdmin)}
               />
               {errors.ingresso_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_mattina}</p>
@@ -328,7 +374,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.uscita_mattina}
                 onChange={(val) => handleChange('uscita_mattina', val)}
                 error={!!errors.uscita_mattina}
-                disabled={dataFutura}
+                disabled={dataFutura || (isLocked && !isUserAdmin)}
               />
               {errors.uscita_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_mattina}</p>
@@ -347,7 +393,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.ingresso_pomeriggio}
                 onChange={(val) => handleChange('ingresso_pomeriggio', val)}
                 error={!!errors.ingresso_pomeriggio}
-                disabled={dataFutura}
+                disabled={dataFutura || (isLocked && !isUserAdmin)}
               />
               {errors.ingresso_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_pomeriggio}</p>
@@ -361,7 +407,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.uscita_pomeriggio}
                 onChange={(val) => handleChange('uscita_pomeriggio', val)}
                 error={!!errors.uscita_pomeriggio}
-                disabled={dataFutura}
+                disabled={dataFutura || (isLocked && !isUserAdmin)}
               />
               {errors.uscita_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_pomeriggio}</p>
@@ -379,7 +425,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
             rows={3}
             className="input"
             placeholder="Note aggiuntive (opzionale)"
-            disabled={dataFutura}
+            disabled={dataFutura || (isLocked && !isUserAdmin)}
           />
         </div>
 
@@ -401,7 +447,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                 value={formData.straordinari}
                 onChange={(e) => handleChange('straordinari', parseFloat(e.target.value) || 0)}
                 className="input"
-                disabled={dataFutura}
+                disabled={dataFutura || (isLocked && !isUserAdmin)}
               />
             </div>
             <div>
@@ -414,7 +460,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
                   checked={formData.trasferta}
                   onChange={(e) => handleChange('trasferta', e.target.checked)}
                   className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                  disabled={dataFutura}
+                  disabled={dataFutura || (isLocked && !isUserAdmin)}
                 />
                 <span className="ml-2 text-gray-700">Presente</span>
               </div>
@@ -499,8 +545,9 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
           {presenza && (
             <button
               onClick={handleDelete}
-              disabled={loading}
+              disabled={loading || (isLocked && !isUserAdmin)}
               className="btn-danger mr-auto flex items-center gap-2"
+              title={isLocked && !isUserAdmin ? 'Mese bloccato - solo admin possono eliminare' : undefined}
             >
               <Trash2 className="h-4 w-4" />
               Elimina
@@ -509,7 +556,12 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave }: Modal
           <button onClick={onClose} disabled={loading} className="btn-outline">
             Annulla
           </button>
-          <button onClick={handleSave} disabled={loading || !canSave} className="btn-primary">
+          <button
+            onClick={handleSave}
+            disabled={loading || !canSave || (isLocked && !isUserAdmin)}
+            className="btn-primary"
+            title={isLocked && !isUserAdmin ? 'Mese bloccato - solo admin possono salvare' : undefined}
+          >
             {loading ? (
               <>
                 <LoadingSpinner className="h-4 w-4 mr-2" />

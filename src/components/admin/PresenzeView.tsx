@@ -2,7 +2,7 @@
 
 // Vista Presenze - Griglia tipo Excel
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Download, Upload, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Upload, Plus, Lock, Unlock } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner, TableSkeleton } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
@@ -26,6 +26,8 @@ export function PresenzeView() {
     presenza?: Presenza;
   } | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockLoading, setLockLoading] = useState(false);
 
   const { showToast } = useToast();
   const supabase = createClient();
@@ -33,6 +35,7 @@ export function PresenzeView() {
   // Carica dati
   useEffect(() => {
     loadData();
+    loadLockStatus();
   }, [anno, mese]);
 
   async function loadData() {
@@ -123,6 +126,50 @@ export function PresenzeView() {
   function goToCurrentMonth() {
     setAnno(new Date().getFullYear());
     setMese(new Date().getMonth() + 1);
+  }
+
+  // Carica lo stato del lock per il mese corrente
+  async function loadLockStatus() {
+    try {
+      const response = await fetch(`/api/presenze-locks/status?anno=${anno}&mese=${mese}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsLocked(data.locked);
+      } else {
+        console.error('Errore durante il caricamento dello stato del lock:', data.error);
+      }
+    } catch (error: any) {
+      console.error('Errore durante il caricamento dello stato del lock:', error);
+    }
+  }
+
+  // Toggle del lock per il mese corrente
+  async function handleToggleLock() {
+    setLockLoading(true);
+    try {
+      const response = await fetch('/api/presenze-locks/toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ anno, mese }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setIsLocked(data.locked);
+        showToast(data.message, 'success');
+      } else {
+        showToast(data.error || 'Errore durante il toggle del lock', 'error');
+      }
+    } catch (error: any) {
+      console.error('Errore durante il toggle del lock:', error);
+      showToast('Errore durante il toggle del lock', 'error');
+    } finally {
+      setLockLoading(false);
+    }
   }
 
   // Gestione click su cella
@@ -330,6 +377,27 @@ export function PresenzeView() {
 
         {/* Azioni */}
         <div className="flex items-center gap-2">
+          <button
+            onClick={handleToggleLock}
+            disabled={lockLoading}
+            className={`text-sm py-2 px-3 flex items-center gap-2 ${
+              isLocked
+                ? 'btn-danger'
+                : 'btn-primary'
+            }`}
+            title={isLocked ? 'Sblocca presenze per tutti gli utenti' : 'Blocca presenze per utenti non admin'}
+          >
+            {lockLoading ? (
+              <LoadingSpinner size="sm" />
+            ) : isLocked ? (
+              <Lock className="h-4 w-4" />
+            ) : (
+              <Unlock className="h-4 w-4" />
+            )}
+            <span className="hidden sm:inline">
+              {isLocked ? 'Sblocca Presenze' : 'Blocca Presenze'}
+            </span>
+          </button>
           <button onClick={() => setShowImportModal(true)} className="btn-outline text-sm py-2 px-3 flex items-center gap-2" title="Importa presenze da file">
             <Upload className="h-4 w-4" />
             <span className="hidden sm:inline">Importa</span>
@@ -383,6 +451,7 @@ export function PresenzeView() {
           presenza={selectedPresenza.presenza}
           onClose={() => setSelectedPresenza(null)}
           onSave={handleSavePresenza}
+          isLocked={isLocked}
         />
       )}
 
