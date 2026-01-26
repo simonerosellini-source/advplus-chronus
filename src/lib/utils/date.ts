@@ -1,5 +1,5 @@
 // Utility functions per gestione date e calcolo ore
-import { format, parse, parseISO, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isAfter, isBefore, isSameDay, getYear } from 'date-fns';
+import { format, parse, parseISO, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isAfter, isBefore, isSameDay, getYear, startOfDay } from 'date-fns';
 import { it } from 'date-fns/locale';
 
 /**
@@ -118,11 +118,12 @@ export function isOggi(data: Date | string): boolean {
 }
 
 /**
- * Verifica se una data è nel futuro
+ * Verifica se una data è nel futuro (confronta solo le date, ignorando l'ora)
  */
 export function isFuturo(data: Date | string): boolean {
   const d = typeof data === 'string' ? parseISO(data) : data;
-  return isAfter(d, new Date());
+  // Confronta solo le date, ignorando l'ora
+  return isAfter(startOfDay(d), startOfDay(new Date()));
 }
 
 /**
