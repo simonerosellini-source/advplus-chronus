@@ -42,8 +42,8 @@ export async function sendWelcomeEmail(params: {
       loginUrl,
     });
 
-    // Mittente email (commerciale@advisoryplus.it come richiesto)
-    const fromEmail = process.env.SMTP_FROM || 'commerciale@advisoryplus.it';
+    // Mittente email (amministrazione@advisoryplus.it come richiesto)
+    const fromEmail = process.env.SMTP_FROM || 'amministrazione@advisoryplus.it';
 
     console.log(`📤 Invio email da: ${fromEmail} a: ${params.email}`);
 
@@ -100,7 +100,7 @@ export async function sendTimesheetReminderToAll(
     ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
     : 'http://localhost:3000/login';
 
-  const fromEmail = process.env.SMTP_FROM || 'commerciale@advisoryplus.it';
+  const fromEmail = process.env.SMTP_FROM || 'amministrazione@advisoryplus.it';
 
   let sent = 0;
   let failed = 0;
