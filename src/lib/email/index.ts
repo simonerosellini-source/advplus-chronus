@@ -1,5 +1,37 @@
 import { createEmailTransport } from './smtp';
 import { createWelcomeEmailTemplate, createTimesheetReminderTemplate, createHoursConfirmationTemplate } from './templates';
+import path from 'path';
+import fs from 'fs';
+
+// Funzione per ottenere il path del logo
+function getLogoPath(): string | null {
+  // Prova diversi percorsi possibili per il logo
+  const possiblePaths = [
+    path.join(process.cwd(), 'public', 'presency-plus-logo.png'),
+    path.join(process.cwd(), 'presency-plus-logo.png'),
+  ];
+
+  for (const logoPath of possiblePaths) {
+    if (fs.existsSync(logoPath)) {
+      return logoPath;
+    }
+  }
+
+  console.warn('⚠️ Logo non trovato nei percorsi:', possiblePaths);
+  return null;
+}
+
+// Funzione per creare l'attachment del logo
+function getLogoAttachment(): { filename: string; path: string; cid: string } | null {
+  const logoPath = getLogoPath();
+  if (!logoPath) return null;
+
+  return {
+    filename: 'presency-plus-logo.png',
+    path: logoPath,
+    cid: 'presencylogo', // Content-ID per riferimento nell'HTML
+  };
+}
 
 /**
  * Invia email di benvenuto con credenziali di accesso
@@ -33,10 +65,9 @@ export async function sendWelcomeEmail(params: {
       ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
       : 'https://presency.vercel.app/login';
 
-    // Ottieni URL del logo
-    const logoUrl = process.env.NEXT_PUBLIC_APP_URL
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/presency-plus-logo.png`
-      : 'https://presency.vercel.app/presency-plus-logo.png';
+    // Ottieni allegato logo
+    const logoAttachment = getLogoAttachment();
+    const logoCid = logoAttachment ? logoAttachment.cid : undefined;
 
     // Genera template email
     const emailTemplate = createWelcomeEmailTemplate({
@@ -45,7 +76,7 @@ export async function sendWelcomeEmail(params: {
       email: params.email,
       password: params.password,
       loginUrl,
-      logoUrl,
+      logoCid,
     });
 
     // Mittente email (amministrazione@advisoryplus.it come richiesto)
@@ -53,13 +84,14 @@ export async function sendWelcomeEmail(params: {
 
     console.log(`📤 Invio email da: ${fromEmail} a: ${params.email}`);
 
-    // Invia email
+    // Invia email con allegato logo
     const info = await transport.sendMail({
       from: `"Presency+ by Advisory+" <${fromEmail}>`,
       to: params.email,
       subject: emailTemplate.subject,
       text: emailTemplate.text,
       html: emailTemplate.html,
+      attachments: logoAttachment ? [logoAttachment] : [],
     });
 
     console.log('✅ Email di benvenuto inviata con successo:', info.messageId);
@@ -106,10 +138,9 @@ export async function sendTimesheetReminderToAll(
     ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
     : 'https://presency.vercel.app/login';
 
-  // Ottieni URL del logo
-  const logoUrl = process.env.NEXT_PUBLIC_APP_URL
-    ? `${process.env.NEXT_PUBLIC_APP_URL}/presency-plus-logo.png`
-    : 'https://presency.vercel.app/presency-plus-logo.png';
+  // Ottieni allegato logo
+  const logoAttachment = getLogoAttachment();
+  const logoCid = logoAttachment ? logoAttachment.cid : undefined;
 
   const fromEmail = process.env.SMTP_FROM || 'amministrazione@advisoryplus.it';
 
@@ -124,7 +155,7 @@ export async function sendTimesheetReminderToAll(
         nome: user.nome,
         cognome: user.cognome,
         loginUrl,
-        logoUrl,
+        logoCid,
       });
 
       console.log(`📤 Invio email reminder a: ${user.email}`);
@@ -135,6 +166,7 @@ export async function sendTimesheetReminderToAll(
         subject: emailTemplate.subject,
         text: emailTemplate.text,
         html: emailTemplate.html,
+        attachments: logoAttachment ? [logoAttachment] : [],
       });
 
       console.log(`✅ Email inviata con successo a: ${user.email}`);
@@ -192,10 +224,9 @@ export async function sendHoursConfirmationToAdmin(params: {
       ? `${process.env.NEXT_PUBLIC_APP_URL}/admin`
       : 'https://presency.vercel.app/admin';
 
-    // Ottieni URL del logo
-    const logoUrl = process.env.NEXT_PUBLIC_APP_URL
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/presency-plus-logo.png`
-      : 'https://presency.vercel.app/presency-plus-logo.png';
+    // Ottieni allegato logo
+    const logoAttachment = getLogoAttachment();
+    const logoCid = logoAttachment ? logoAttachment.cid : undefined;
 
     // Data e ora corrente formattata
     const dataInvio = new Date().toLocaleString('it-IT', {
@@ -215,7 +246,7 @@ export async function sendHoursConfirmationToAdmin(params: {
       anno: params.anno,
       dataInvio,
       adminUrl,
-      logoUrl,
+      logoCid,
     });
 
     // Email destinatario (amministrazione)
@@ -224,13 +255,14 @@ export async function sendHoursConfirmationToAdmin(params: {
 
     console.log(`📤 Invio email da: ${fromEmail} a: ${adminEmail}`);
 
-    // Invia email
+    // Invia email con allegato logo
     const info = await transport.sendMail({
       from: `"Presency+ by Advisory+" <${fromEmail}>`,
       to: adminEmail,
       subject: emailTemplate.subject,
       text: emailTemplate.text,
       html: emailTemplate.html,
+      attachments: logoAttachment ? [logoAttachment] : [],
     });
 
     console.log('✅ Email di conferma inviata con successo:', info.messageId);
