@@ -194,7 +194,7 @@ export function PresenzeView() {
         if (data.sent > 0) {
           showToast(
             `Email inviate con successo a ${data.sent} ${data.sent === 1 ? 'utente' : 'utenti'}${data.failed > 0 ? ` (${data.failed} fallite)` : ''}`,
-            data.failed > 0 ? 'warning' : 'success'
+            data.failed > 0 ? 'info' : 'success'
           );
         } else {
           showToast(data.message || 'Nessuna email inviata', 'info');
