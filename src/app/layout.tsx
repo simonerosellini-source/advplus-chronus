@@ -7,6 +7,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Presency+ | Sistema Gestione Presenze',
   description: 'Presency+ - Sistema Calendario e Gestione Presenze Aziendale',
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
