@@ -31,12 +31,12 @@ export async function sendWelcomeEmail(params: {
     // Ottieni URL dell'applicazione
     const loginUrl = process.env.NEXT_PUBLIC_APP_URL
       ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
-      : 'http://localhost:3000/login';
+      : 'https://presency.vercel.app/login';
 
     // Ottieni URL del logo
     const logoUrl = process.env.NEXT_PUBLIC_APP_URL
       ? `${process.env.NEXT_PUBLIC_APP_URL}/presency-plus-logo.png`
-      : 'http://localhost:3000/presency-plus-logo.png';
+      : 'https://presency.vercel.app/presency-plus-logo.png';
 
     // Genera template email
     const emailTemplate = createWelcomeEmailTemplate({
@@ -104,12 +104,12 @@ export async function sendTimesheetReminderToAll(
   // Ottieni URL dell'applicazione
   const loginUrl = process.env.NEXT_PUBLIC_APP_URL
     ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
-    : 'http://localhost:3000/login';
+    : 'https://presency.vercel.app/login';
 
   // Ottieni URL del logo
   const logoUrl = process.env.NEXT_PUBLIC_APP_URL
     ? `${process.env.NEXT_PUBLIC_APP_URL}/presency-plus-logo.png`
-    : 'http://localhost:3000/presency-plus-logo.png';
+    : 'https://presency.vercel.app/presency-plus-logo.png';
 
   const fromEmail = process.env.SMTP_FROM || 'amministrazione@advisoryplus.it';
 
@@ -190,12 +190,12 @@ export async function sendHoursConfirmationToAdmin(params: {
     // Ottieni URL dell'applicazione
     const adminUrl = process.env.NEXT_PUBLIC_APP_URL
       ? `${process.env.NEXT_PUBLIC_APP_URL}/admin`
-      : 'http://localhost:3000/admin';
+      : 'https://presency.vercel.app/admin';
 
     // Ottieni URL del logo
     const logoUrl = process.env.NEXT_PUBLIC_APP_URL
       ? `${process.env.NEXT_PUBLIC_APP_URL}/presency-plus-logo.png`
-      : 'http://localhost:3000/presency-plus-logo.png';
+      : 'https://presency.vercel.app/presency-plus-logo.png';
 
     // Data e ora corrente formattata
     const dataInvio = new Date().toLocaleString('it-IT', {
