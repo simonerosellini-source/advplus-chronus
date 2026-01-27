@@ -287,10 +287,10 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-green-900 mb-1">
-              Hai completato l'inserimento degli orari?
+              Hai completato l&apos;inserimento degli orari?
             </h3>
             <p className="text-sm text-green-700">
-              Clicca qui per inviare una conferma all'amministrazione che hai inserito correttamente tutti gli orari per {MESI_ITALIANI[mese - 1]} {anno}
+              Clicca qui per inviare una conferma all&apos;amministrazione che hai inserito correttamente tutti gli orari per {MESI_ITALIANI[mese - 1]} {anno}
             </p>
           </div>
           <button
