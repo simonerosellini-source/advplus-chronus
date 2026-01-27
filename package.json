@@ -1,7 +1,7 @@
 {
-  "name": "chronus-plus",
+  "name": "presency-plus",
   "version": "1.0.0",
-  "description": "Chronus+ - Sistema Calendario e Gestione Presenze",
+  "description": "Presency+ - Sistema Calendario e Gestione Presenze",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -1,6 +1,6 @@
 'use client';
 
-// Pagina di Login - Advisory+ Calendar
+// Pagina di Login - Presency+
 import { useState } from 'react';
 import { Logo } from '@/components/ui/Logo';
 import { login } from './actions';
@@ -42,10 +42,10 @@ export default function LoginPage() {
           {/* Titolo */}
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-primary mb-2">
-              Advisory+ Calendar
+              Presency+
             </h1>
             <p className="text-gray-600 text-sm">
-              Sistema Calendario e Gestione Presenze
+              Sistema Gestione Presenze by Advisory+
             </p>
           </div>
 

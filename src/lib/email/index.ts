@@ -49,7 +49,7 @@ export async function sendWelcomeEmail(params: {
 
     // Invia email
     const info = await transport.sendMail({
-      from: `"Advisory+ - Chronus+" <${fromEmail}>`,
+      from: `"Presency+ by Advisory+" <${fromEmail}>`,
       to: params.email,
       subject: emailTemplate.subject,
       text: emailTemplate.text,
@@ -118,7 +118,7 @@ export async function sendTimesheetReminderToAll(
       console.log(`📤 Invio email reminder a: ${user.email}`);
 
       await transport.sendMail({
-        from: `"Advisory+ - Chronus+" <${fromEmail}>`,
+        from: `"Presency+ by Advisory+" <${fromEmail}>`,
         to: user.email,
         subject: emailTemplate.subject,
         text: emailTemplate.text,

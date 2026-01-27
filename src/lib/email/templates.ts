@@ -9,7 +9,7 @@ export function createTimesheetReminderTemplate(params: {
   const { nome, cognome, loginUrl } = params;
 
   return {
-    subject: `Chronus+ - Promemoria Inserimento Ore di Lavoro`,
+    subject: `Presency+ - Promemoria Inserimento Ore di Lavoro`,
     html: `
 <!DOCTYPE html>
 <html lang="it">
@@ -31,7 +31,7 @@ export function createTimesheetReminderTemplate(params: {
                 ⏰ Promemoria Inserimento Ore
               </h1>
               <p style="margin: 10px 0 0; color: #e0e7ff; font-size: 16px;">
-                Sistema Gestione Presenze Chronus+
+                Sistema Gestione Presenze Presency+
               </p>
             </td>
           </tr>
@@ -44,7 +44,7 @@ export function createTimesheetReminderTemplate(params: {
               </p>
 
               <p style="margin: 0 0 30px; color: #374151; font-size: 16px; line-height: 1.6;">
-                Ti ricordiamo di inserire le tue ore di lavoro nel sistema gestionale Chronus+. È importante mantenere aggiornato il tuo timesheet per garantire una corretta gestione delle presenze.
+                Ti ricordiamo di inserire le tue ore di lavoro nel sistema gestionale Presency+. È importante mantenere aggiornato il tuo timesheet per garantire una corretta gestione delle presenze.
               </p>
 
               <!-- Box Azione Richiesta -->
@@ -53,7 +53,7 @@ export function createTimesheetReminderTemplate(params: {
                   <td style="padding: 24px;">
                     <p style="margin: 0; color: #92400e; font-size: 15px; line-height: 1.6;">
                       <strong>📋 Azione richiesta:</strong><br>
-                      Accedi alla piattaforma Chronus+ e inserisci le ore lavorate per il periodo corrente. Assicurati di compilare tutti i giorni lavorativi e di includere eventuali straordinari, ferie o permessi.
+                      Accedi alla piattaforma Presency+ e inserisci le ore lavorate per il periodo corrente. Assicurati di compilare tutti i giorni lavorativi e di includere eventuali straordinari, ferie o permessi.
                     </p>
                   </td>
                 </tr>
@@ -64,7 +64,7 @@ export function createTimesheetReminderTemplate(params: {
                 <tr>
                   <td align="center">
                     <a href="${loginUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
-                      Accedi a Chronus+
+                      Accedi a Presency+
                     </a>
                   </td>
                 </tr>
@@ -112,14 +112,14 @@ export function createTimesheetReminderTemplate(params: {
 </html>
     `,
     text: `
-Promemoria Inserimento Ore - Chronus+
+Promemoria Inserimento Ore - Presency+
 
 Gentile ${nome} ${cognome},
 
-Ti ricordiamo di inserire le tue ore di lavoro nel sistema gestionale Chronus+. È importante mantenere aggiornato il tuo timesheet per garantire una corretta gestione delle presenze.
+Ti ricordiamo di inserire le tue ore di lavoro nel sistema gestionale Presency+. È importante mantenere aggiornato il tuo timesheet per garantire una corretta gestione delle presenze.
 
 AZIONE RICHIESTA:
-Accedi alla piattaforma Chronus+ e inserisci le ore lavorate per il periodo corrente. Assicurati di compilare tutti i giorni lavorativi e di includere eventuali straordinari, ferie o permessi.
+Accedi alla piattaforma Presency+ e inserisci le ore lavorate per il periodo corrente. Assicurati di compilare tutti i giorni lavorativi e di includere eventuali straordinari, ferie o permessi.
 
 Link di accesso: ${loginUrl}
 
@@ -150,14 +150,14 @@ export function createWelcomeEmailTemplate(params: {
   const { nome, cognome, email, password, loginUrl } = params;
 
   return {
-    subject: `Benvenuto in Chronus+ - Credenziali di accesso`,
+    subject: `Benvenuto in Presency+ - Credenziali di accesso`,
     html: `
 <!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Benvenuto in Chronus+</title>
+  <title>Benvenuto in Presency+</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -169,7 +169,7 @@ export function createWelcomeEmailTemplate(params: {
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 8px 8px 0 0;">
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
-                Benvenuto in Chronus+
+                Benvenuto in Presency+
               </h1>
               <p style="margin: 10px 0 0; color: #e0e7ff; font-size: 16px;">
                 Sistema Gestione Presenze
@@ -185,7 +185,7 @@ export function createWelcomeEmailTemplate(params: {
               </p>
 
               <p style="margin: 0 0 30px; color: #374151; font-size: 16px; line-height: 1.6;">
-                Il tuo account è stato creato con successo. Di seguito troverai le credenziali per accedere alla piattaforma Chronus+:
+                Il tuo account è stato creato con successo. Di seguito troverai le credenziali per accedere alla piattaforma Presency+:
               </p>
 
               <!-- Box Credenziali -->
@@ -271,11 +271,11 @@ export function createWelcomeEmailTemplate(params: {
 </html>
     `,
     text: `
-Benvenuto in Chronus+
+Benvenuto in Presency+
 
 Gentile ${nome} ${cognome},
 
-Il tuo account è stato creato con successo. Di seguito troverai le credenziali per accedere alla piattaforma Chronus+:
+Il tuo account è stato creato con successo. Di seguito troverai le credenziali per accedere alla piattaforma Presency+:
 
 Username / Email: ${email}
 Password: ${password}
