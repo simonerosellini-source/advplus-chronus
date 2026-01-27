@@ -35,18 +35,8 @@ export default function LoginPage() {
         {/* Card principale */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {/* Logo */}
-          <div className="mb-8">
+          <div className="mb-12 mt-4">
             <Logo />
-          </div>
-
-          {/* Titolo */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-primary mb-2">
-              Presency+
-            </h1>
-            <p className="text-gray-600 text-sm">
-              Sistema Gestione Presenze by Advisory+
-            </p>
           </div>
 
           {/* Form di login */}
