@@ -60,7 +60,7 @@ export function createTimesheetReminderTemplate(params: {
               </table>
 
               <!-- Pulsante Accedi -->
-              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <tr>
                   <td align="center">
                     <a href="${loginUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
@@ -69,6 +69,12 @@ export function createTimesheetReminderTemplate(params: {
                   </td>
                 </tr>
               </table>
+
+              <!-- Link testuale -->
+              <p style="margin: 0 0 30px; color: #6b7280; font-size: 14px; text-align: center; line-height: 1.6;">
+                Oppure copia e incolla questo link nel tuo browser:<br>
+                <a href="${loginUrl}" style="color: #3b82f6; text-decoration: none; word-break: break-all;">${loginUrl}</a>
+              </p>
 
               <!-- Avviso -->
               <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 4px; margin-bottom: 30px;">
@@ -219,7 +225,7 @@ export function createWelcomeEmailTemplate(params: {
               </table>
 
               <!-- Pulsante Accedi -->
-              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <tr>
                   <td align="center">
                     <a href="${loginUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
@@ -228,6 +234,12 @@ export function createWelcomeEmailTemplate(params: {
                   </td>
                 </tr>
               </table>
+
+              <!-- Link testuale -->
+              <p style="margin: 0 0 30px; color: #6b7280; font-size: 14px; text-align: center; line-height: 1.6;">
+                Oppure copia e incolla questo link nel tuo browser:<br>
+                <a href="${loginUrl}" style="color: #3b82f6; text-decoration: none; word-break: break-all;">${loginUrl}</a>
+              </p>
 
               <!-- Avviso sicurezza -->
               <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #dbeafe; border-left: 4px solid #3b82f6; border-radius: 4px; margin-bottom: 30px;">
