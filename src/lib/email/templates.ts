@@ -5,8 +5,9 @@ export function createTimesheetReminderTemplate(params: {
   nome: string;
   cognome: string;
   loginUrl: string;
+  logoUrl?: string;
 }) {
-  const { nome, cognome, loginUrl } = params;
+  const { nome, cognome, loginUrl, logoUrl } = params;
 
   return {
     subject: `Presency+ - Promemoria Inserimento Ore di Lavoro`,
@@ -24,9 +25,16 @@ export function createTimesheetReminderTemplate(params: {
       <td align="center" style="padding: 40px 0;">
         <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
 
+          ${logoUrl ? `<!-- Logo -->
+          <tr>
+            <td style="padding: 30px 40px 20px; text-align: center; background-color: #ffffff; border-radius: 8px 8px 0 0;">
+              <img src="${logoUrl}" alt="Presency+ by Advisory+" style="max-width: 300px; height: auto; display: block; margin: 0 auto;" />
+            </td>
+          </tr>` : ''}
+
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 8px 8px 0 0;">
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); ${logoUrl ? '' : 'border-radius: 8px 8px 0 0;'}">
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                 ⏰ Promemoria Inserimento Ore
               </h1>
@@ -154,8 +162,9 @@ export function createHoursConfirmationTemplate(params: {
   anno: number;
   dataInvio: string;
   adminUrl: string;
+  logoUrl?: string;
 }) {
-  const { nome, cognome, email, mese, anno, dataInvio, adminUrl } = params;
+  const { nome, cognome, email, mese, anno, dataInvio, adminUrl, logoUrl } = params;
 
   return {
     subject: `Conferma Inserimento Orari - ${nome} ${cognome} (${mese} ${anno})`,
@@ -173,9 +182,16 @@ export function createHoursConfirmationTemplate(params: {
       <td align="center" style="padding: 40px 0;">
         <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
 
+          ${logoUrl ? `<!-- Logo -->
+          <tr>
+            <td style="padding: 30px 40px 20px; text-align: center; background-color: #ffffff; border-radius: 8px 8px 0 0;">
+              <img src="${logoUrl}" alt="Presency+ by Advisory+" style="max-width: 300px; height: auto; display: block; margin: 0 auto;" />
+            </td>
+          </tr>` : ''}
+
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border-radius: 8px 8px 0 0;">
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #059669 0%, #10b981 100%); ${logoUrl ? '' : 'border-radius: 8px 8px 0 0;'}">
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                 ✅ Conferma Inserimento Orari
               </h1>
@@ -315,8 +331,9 @@ export function createWelcomeEmailTemplate(params: {
   email: string;
   password: string;
   loginUrl: string;
+  logoUrl?: string;
 }) {
-  const { nome, cognome, email, password, loginUrl } = params;
+  const { nome, cognome, email, password, loginUrl, logoUrl } = params;
 
   return {
     subject: `Benvenuto in Presency+ - Credenziali di accesso`,
@@ -334,9 +351,16 @@ export function createWelcomeEmailTemplate(params: {
       <td align="center" style="padding: 40px 0;">
         <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
 
+          ${logoUrl ? `<!-- Logo -->
+          <tr>
+            <td style="padding: 30px 40px 20px; text-align: center; background-color: #ffffff; border-radius: 8px 8px 0 0;">
+              <img src="${logoUrl}" alt="Presency+ by Advisory+" style="max-width: 300px; height: auto; display: block; margin: 0 auto;" />
+            </td>
+          </tr>` : ''}
+
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 8px 8px 0 0;">
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); ${logoUrl ? '' : 'border-radius: 8px 8px 0 0;'}">
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                 Benvenuto in Presency+
               </h1>

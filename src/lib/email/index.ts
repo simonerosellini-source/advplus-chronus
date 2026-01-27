@@ -33,6 +33,11 @@ export async function sendWelcomeEmail(params: {
       ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
       : 'http://localhost:3000/login';
 
+    // Ottieni URL del logo
+    const logoUrl = process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/presency-plus-logo.png`
+      : 'http://localhost:3000/presency-plus-logo.png';
+
     // Genera template email
     const emailTemplate = createWelcomeEmailTemplate({
       nome: params.nome,
@@ -40,6 +45,7 @@ export async function sendWelcomeEmail(params: {
       email: params.email,
       password: params.password,
       loginUrl,
+      logoUrl,
     });
 
     // Mittente email (amministrazione@advisoryplus.it come richiesto)
@@ -100,6 +106,11 @@ export async function sendTimesheetReminderToAll(
     ? `${process.env.NEXT_PUBLIC_APP_URL}/login`
     : 'http://localhost:3000/login';
 
+  // Ottieni URL del logo
+  const logoUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? `${process.env.NEXT_PUBLIC_APP_URL}/presency-plus-logo.png`
+    : 'http://localhost:3000/presency-plus-logo.png';
+
   const fromEmail = process.env.SMTP_FROM || 'amministrazione@advisoryplus.it';
 
   let sent = 0;
@@ -113,6 +124,7 @@ export async function sendTimesheetReminderToAll(
         nome: user.nome,
         cognome: user.cognome,
         loginUrl,
+        logoUrl,
       });
 
       console.log(`📤 Invio email reminder a: ${user.email}`);
@@ -180,6 +192,11 @@ export async function sendHoursConfirmationToAdmin(params: {
       ? `${process.env.NEXT_PUBLIC_APP_URL}/admin`
       : 'http://localhost:3000/admin';
 
+    // Ottieni URL del logo
+    const logoUrl = process.env.NEXT_PUBLIC_APP_URL
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/presency-plus-logo.png`
+      : 'http://localhost:3000/presency-plus-logo.png';
+
     // Data e ora corrente formattata
     const dataInvio = new Date().toLocaleString('it-IT', {
       day: '2-digit',
@@ -198,6 +215,7 @@ export async function sendHoursConfirmationToAdmin(params: {
       anno: params.anno,
       dataInvio,
       adminUrl,
+      logoUrl,
     });
 
     // Email destinatario (amministrazione)
