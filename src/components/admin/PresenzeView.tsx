@@ -10,7 +10,7 @@ import { GrigliaPresenze } from './GrigliaPresenze';
 import { ModalPresenza } from './ModalPresenza';
 import { ModalImport } from './ModalImport';
 import { getGiorniMese, MESI_ITALIANI, toISODate, formatOreTotali } from '@/lib/utils/date';
-import type { User, Presenza, GiornoFestivo, RigaPresenze } from '@/types/database.types';
+import type { User, Presenza, GiornoFestivo, RigaPresenze, PremioMensile } from '@/types/database.types';
 import * as XLSX from 'xlsx';
 
 export function PresenzeView() {
@@ -20,11 +20,15 @@ export function PresenzeView() {
   const [users, setUsers] = useState<User[]>([]);
   const [presenze, setPresenze] = useState<Presenza[]>([]);
   const [festivi, setFestivi] = useState<GiornoFestivo[]>([]);
+  const [premi, setPremi] = useState<PremioMensile[]>([]);
   const [selectedPresenza, setSelectedPresenza] = useState<{
     userId: string;
     data: string;
     presenza?: Presenza;
   } | null>(null);
+  const [selectedUserForPremio, setSelectedUserForPremio] = useState<User | null>(null);
+  const [premioInput, setPremioInput] = useState<string>('');
+  const [savingPremio, setSavingPremio] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
@@ -91,9 +95,21 @@ export function PresenzeView() {
 
       console.log(`[${timestamp}] Festività admin caricate:`, festiviData?.length, festiviData);
 
+      // Carica premi mensili
+      const { data: premiData, error: premiError } = await supabase
+        .from('premi_mensili')
+        .select('*')
+        .eq('anno', anno)
+        .eq('mese', mese);
+
+      if (premiError) {
+        console.warn('Errore caricamento premi (tabella potrebbe non esistere):', premiError);
+      }
+
       setUsers(usersData || []);
       setPresenze(presenzeData || []);
       setFestivi(festiviData || []);
+      setPremi(premiData || []);
 
       console.log(`[${timestamp}] State aggiornato`);
     } catch (error: any) {
@@ -223,6 +239,56 @@ export function PresenzeView() {
     showToast('Presenza salvata con successo', 'success');
   }
 
+  // Apri modal premio
+  function handleOpenPremioModal(user: User) {
+    const premioEsistente = premi.find(p => p.user_id === user.id);
+    setSelectedUserForPremio(user);
+    setPremioInput(premioEsistente ? premioEsistente.importo.toString() : '');
+  }
+
+  // Salva premio
+  async function handleSavePremio() {
+    if (!selectedUserForPremio) return;
+
+    setSavingPremio(true);
+    try {
+      const importo = parseFloat(premioInput) || 0;
+      const premioEsistente = premi.find(p => p.user_id === selectedUserForPremio.id);
+
+      if (premioEsistente) {
+        // Aggiorna premio esistente
+        const { error } = await supabase
+          .from('premi_mensili')
+          .update({ importo, updated_at: new Date().toISOString() })
+          .eq('id', premioEsistente.id);
+
+        if (error) throw error;
+      } else if (importo > 0) {
+        // Crea nuovo premio solo se importo > 0
+        const { error } = await supabase
+          .from('premi_mensili')
+          .insert({
+            user_id: selectedUserForPremio.id,
+            anno,
+            mese,
+            importo,
+          });
+
+        if (error) throw error;
+      }
+
+      await loadData();
+      setSelectedUserForPremio(null);
+      setPremioInput('');
+      showToast('Premio salvato con successo', 'success');
+    } catch (error: any) {
+      console.error('Errore salvataggio premio:', error);
+      showToast('Errore durante il salvataggio del premio', 'error');
+    } finally {
+      setSavingPremio(false);
+    }
+  }
+
   // Export Excel
   function handleExportExcel() {
     try {
@@ -244,6 +310,7 @@ export function PresenzeView() {
       headerRow.push('Ore 104');
       headerRow.push('N° Trasferte');
       headerRow.push('Importo Trasferte');
+      headerRow.push('Importo Premio');
       excelData.push(headerRow);
 
       // Seconda riga con giorni settimana
@@ -253,7 +320,7 @@ export function PresenzeView() {
         dayNamesRow.push(giornoSettimana);
       });
       // Aggiungi celle vuote per le nuove colonne totali
-      dayNamesRow.push('', '', '', '', '', '', '', '');
+      dayNamesRow.push('', '', '', '', '', '', '', '', '');
       excelData.push(dayNamesRow);
 
       // Righe per ogni utente
@@ -333,6 +400,10 @@ export function PresenzeView() {
         // Calcola importo trasferte (numero giorni * importo per trasferta)
         const importoTrasferte = numeroTrasferte * (user.importo_trasferte || 0);
 
+        // Trova premio per questo utente
+        const premioUtente = premi.find(p => p.user_id === user.id);
+        const importoPremio = premioUtente?.importo || 0;
+
         // Aggiungi colonne totali
         row.push(formatOreTotali(oreLavorate));
         row.push(formatOreTotali(totaleStraordinari));
@@ -342,6 +413,7 @@ export function PresenzeView() {
         row.push(formatOreTotali(totale104));
         row.push(numeroTrasferte > 0 ? numeroTrasferte.toString() : '-');
         row.push(importoTrasferte > 0 ? `€${importoTrasferte.toFixed(2)}` : '-');
+        row.push(importoPremio > 0 ? `€${importoPremio.toFixed(2)}` : '-');
 
         excelData.push(row);
       });
@@ -362,6 +434,7 @@ export function PresenzeView() {
       colWidths.push({ wch: 12 }); // Ore 104
       colWidths.push({ wch: 15 }); // N° Trasferte
       colWidths.push({ wch: 18 }); // Importo Trasferte
+      colWidths.push({ wch: 15 }); // Importo Premio
       ws['!cols'] = colWidths;
 
       // Aggiungi worksheet al workbook
@@ -501,7 +574,9 @@ export function PresenzeView() {
           console.log('Passando festivi a GrigliaPresenze:', festivi.length, 'festività');
           return festivi;
         })()}
+        premi={premi}
         onCellClick={handleCellClick}
+        onPremioClick={handleOpenPremioModal}
       />
 
       {/* Modal inserimento/modifica presenza */}
@@ -525,6 +600,54 @@ export function PresenzeView() {
             setShowImportModal(false);
           }}
         />
+      )}
+
+      {/* Modal inserimento premio */}
+      {selectedUserForPremio && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Premio per {selectedUserForPremio.nome} {selectedUserForPremio.cognome}
+            </h3>
+            <p className="text-sm text-gray-600 mb-4">
+              {MESI_ITALIANI[mese - 1]} {anno}
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Importo Premio (€)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={premioInput}
+                onChange={(e) => setPremioInput(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="0.00"
+                autoFocus
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setSelectedUserForPremio(null);
+                  setPremioInput('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                disabled={savingPremio}
+              >
+                Annulla
+              </button>
+              <button
+                onClick={handleSavePremio}
+                disabled={savingPremio}
+                className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-dark rounded-md disabled:opacity-50"
+              >
+                {savingPremio ? 'Salvataggio...' : 'Salva'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,8 +1,9 @@
 'use client';
 
 // Componente Griglia Presenze tipo Excel
+import { Plus } from 'lucide-react';
 import { getGiorniMese, formatTime, toISODate, isFuturo, formatOreTotali } from '@/lib/utils/date';
-import type { User, Presenza, GiornoFestivo, GiornoCalendario, RigaPresenze } from '@/types/database.types';
+import type { User, Presenza, GiornoFestivo, GiornoCalendario, RigaPresenze, PremioMensile } from '@/types/database.types';
 
 interface GrigliaPresenzeProps {
   anno: number;
@@ -10,7 +11,9 @@ interface GrigliaPresenzeProps {
   users: User[];
   presenze: Presenza[];
   festivi: GiornoFestivo[];
+  premi?: PremioMensile[];
   onCellClick: (userId: string, data: string) => void;
+  onPremioClick?: (user: User) => void;
 }
 
 export function GrigliaPresenze({
@@ -19,7 +22,9 @@ export function GrigliaPresenze({
   users,
   presenze,
   festivi,
+  premi = [],
   onCellClick,
+  onPremioClick,
 }: GrigliaPresenzeProps) {
   const giorniMese = getGiorniMese(anno, mese);
 
@@ -237,7 +242,26 @@ export function GrigliaPresenze({
           {righe.map((riga) => (
             <tr key={riga.user.id}>
               <td className="sticky left-0 bg-white z-10 font-medium border-r-2 border-gray-300">
-                {riga.user.nome} {riga.user.cognome[0]}.
+                <div className="flex items-center gap-1">
+                  <span>{riga.user.nome} {riga.user.cognome[0]}.</span>
+                  {onPremioClick && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPremioClick(riga.user);
+                      }}
+                      className="p-0.5 text-primary hover:bg-primary/10 rounded"
+                      title="Aggiungi premio"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {premi.find(p => p.user_id === riga.user.id)?.importo ? (
+                    <span className="text-[9px] text-green-600 font-semibold">
+                      €{premi.find(p => p.user_id === riga.user.id)?.importo.toFixed(0)}
+                    </span>
+                  ) : null}
+                </div>
               </td>
               {riga.giorni.map((giorno) => (
                 <td
