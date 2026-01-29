@@ -251,6 +251,7 @@ export function PresenzeView() {
         permessi: number;
         legge104: number;
         trasferte: number;
+        importoTrasferte: number;
       }>();
 
       users.forEach(user => {
@@ -262,6 +263,7 @@ export function PresenzeView() {
           permessi: 0,
           legge104: 0,
           trasferte: 0,
+          importoTrasferte: 0,
         });
       });
 
@@ -333,6 +335,7 @@ export function PresenzeView() {
           totalsRow.push('-', '-', '-', '-', '-', '-', '-');
           return;
         }
+        totals.importoTrasferte = totals.trasferte * (user.importo_trasferte || 0);
         totalsRow.push(
           totals.oreOrdinarie > 0 ? formatOreTotali(totals.oreOrdinarie) : '-',
           totals.straordinari > 0 ? formatOreTotali(totals.straordinari) : '-',
@@ -345,6 +348,32 @@ export function PresenzeView() {
       });
 
       excelData.push(totalsRow);
+
+      const spacerRow = ['', '', ''];
+      users.forEach(() => spacerRow.push('', '', '', '', '', '', ''));
+      excelData.push(spacerRow);
+
+      const labelsRow: (string | number)[] = ['', '', ''];
+      users.forEach(() => {
+        labelsRow.push('IMPORTO PREMIO', '', '', '', 'IMPORTO TRASFERTE', '', '');
+      });
+      excelData.push(labelsRow);
+
+      const valuesRow: (string | number)[] = ['', '', ''];
+      users.forEach(user => {
+        const totals = totalsByUser.get(user.id);
+        const importoTrasferte = totals?.importoTrasferte || 0;
+        valuesRow.push(
+          '',
+          '',
+          '',
+          '',
+          importoTrasferte > 0 ? `€${importoTrasferte.toFixed(2)}` : '',
+          '',
+          ''
+        );
+      });
+      excelData.push(valuesRow);
 
       // Crea workbook e worksheet
       const wb = XLSX.utils.book_new();
@@ -365,13 +394,20 @@ export function PresenzeView() {
       });
       ws['!cols'] = colWidths;
 
-      // Merges per nome e cognome su blocchi di 7 colonne
+      // Merges per nome, cognome e blocchi importi su 7 colonne
       const merges: XLSX.Range[] = [];
+      const totalsRowIndex = 3 + giorni.length;
+      const labelsRowIndex = totalsRowIndex + 2;
+      const valuesRowIndex = labelsRowIndex + 1;
       users.forEach((_, index) => {
         const startCol = 3 + index * 7;
         merges.push(
           { s: { r: 0, c: startCol }, e: { r: 0, c: startCol + 6 } },
-          { s: { r: 1, c: startCol }, e: { r: 1, c: startCol + 6 } }
+          { s: { r: 1, c: startCol }, e: { r: 1, c: startCol + 6 } },
+          { s: { r: labelsRowIndex, c: startCol }, e: { r: labelsRowIndex, c: startCol + 3 } },
+          { s: { r: labelsRowIndex, c: startCol + 4 }, e: { r: labelsRowIndex, c: startCol + 6 } },
+          { s: { r: valuesRowIndex, c: startCol }, e: { r: valuesRowIndex, c: startCol + 3 } },
+          { s: { r: valuesRowIndex, c: startCol + 4 }, e: { r: valuesRowIndex, c: startCol + 6 } }
         );
       });
       ws['!merges'] = merges;
@@ -391,10 +427,11 @@ export function PresenzeView() {
             ws[cellAddress] = { t: 's', v: '' };
           }
           const isThickRight = thickBorderCols.has(c);
+          const isTotalsRow = r === totalsRowIndex;
           ws[cellAddress].s = {
             alignment: { horizontal: 'center', vertical: 'center' },
             border: {
-              top: { style: 'thin', color: { auto: 1 } },
+              top: { style: isTotalsRow ? 'medium' : 'thin', color: { auto: 1 } },
               bottom: { style: 'thin', color: { auto: 1 } },
               left: { style: 'thin', color: { auto: 1 } },
               right: { style: isThickRight ? 'medium' : 'thin', color: { auto: 1 } },
