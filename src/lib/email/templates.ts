@@ -354,7 +354,7 @@ export function createWelcomeEmailTemplate(params: {
           ${logoCid ? `<!-- Logo -->
           <tr>
             <td style="padding: 30px 40px 20px; text-align: center; background-color: #ffffff; border-radius: 8px 8px 0 0;">
-              <img src="cid:${logoCid}" alt="Presency+ by Advisory+" style="max-width: 300px; height: auto; display: block; margin: 0 auto;" />
+              <img src="cid:${logoCid}" alt="Presency+ by Advisory+" style="max-width: 200px; height: auto; display: block; margin: 0 auto;" />
             </td>
           </tr>` : ''}
 
@@ -364,7 +364,7 @@ export function createWelcomeEmailTemplate(params: {
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                 Benvenuto in Presency+
               </h1>
-              <p style="margin: 10px 0 0; color: #e0e7ff; font-size: 16px;">
+              <p style="margin: 10px 0 0; color: #ffffff; font-size: 16px; font-weight: 600;">
                 Sistema Gestione Presenze
               </p>
             </td>
@@ -411,21 +411,19 @@ export function createWelcomeEmailTemplate(params: {
                 </tr>
               </table>
 
-              <!-- Pulsante Accedi -->
-              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                <tr>
-                  <td align="center">
-                    <a href="${loginUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
-                      Accedi alla Piattaforma
-                    </a>
-                  </td>
-                </tr>
-              </table>
+              <!-- Testo introduttivo link -->
+              <p style="margin: 0 0 20px; color: #374151; font-size: 16px; line-height: 1.6; text-align: center;">
+                Per accedere fai click sul link di seguito riportato:
+              </p>
 
-              <!-- Link testuale -->
-              <p style="margin: 0 0 30px; color: #6b7280; font-size: 14px; text-align: center; line-height: 1.6;">
-                Oppure copia e incolla questo link nel tuo browser:<br>
-                <a href="${loginUrl}" style="color: #3b82f6; text-decoration: none; word-break: break-all;">${loginUrl}</a>
+              <!-- Link principale -->
+              <p style="margin: 0 0 15px; text-align: center;">
+                <a href="${loginUrl}" style="color: #3b82f6; text-decoration: none; font-size: 18px; font-weight: 600; word-break: break-all;">${loginUrl}</a>
+              </p>
+
+              <!-- Nota copia link -->
+              <p style="margin: 0 0 30px; color: #6b7280; font-size: 13px; text-align: center; line-height: 1.6;">
+                Oppure copia e incolla questo link nel tuo browser
               </p>
 
               <!-- Avviso sicurezza -->
