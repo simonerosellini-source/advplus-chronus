@@ -259,7 +259,7 @@ export function PresenzeView() {
         // Aggiorna premio esistente
         const { error } = await supabase
           .from('premi_mensili')
-          .update({ importo, updated_at: new Date().toISOString() })
+          .update({ importo })
           .eq('id', premioEsistente.id);
 
         if (error) throw error;
