@@ -432,10 +432,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Trasferta
-              </label>
-              <div className={`input flex items-center h-[42px] cursor-pointer`} onClick={() => handleChange('trasferta', !formData.trasferta)}>
+              <label className="flex items-center gap-2 cursor-pointer h-[42px] mt-6">
                 <input
                   type="checkbox"
                   checked={formData.trasferta}
@@ -443,8 +440,8 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                   className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                   disabled={isLocked && !isUserAdmin}
                 />
-                <span className="ml-2 text-gray-700">Presente</span>
-              </div>
+                <span className="text-sm font-medium text-gray-700">Trasferta</span>
+              </label>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
