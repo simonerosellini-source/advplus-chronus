@@ -289,159 +289,199 @@ export function PresenzeView() {
     }
   }
 
-  // Export Excel
+  // Export Excel - Layout verticale
   function handleExportExcel() {
     try {
       const giorni = getGiorniMese(anno, mese);
+      const numGiorni = giorni.length;
+      const numUsers = users.length;
+      const COLS_PER_USER = 7; // ORARIO, STR/SUP, MAL, FER, PER, L104, TR
+      const FIXED_COLS = 3; // Giorno, Giorno Settimana, Festivo
+
+      // Abbreviazioni giorni settimana
+      const giorniSettimana = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
 
       // Crea i dati per Excel
-      const excelData = [];
+      const excelData: (string | number | null)[][] = [];
 
-      // Header row con giorni del mese e nuove colonne totali
-      const headerRow = ['Nome', 'Cognome'];
-      giorni.forEach(giorno => {
-        headerRow.push(`${giorno.getDate()}`);
-      });
-      headerRow.push('Ore Lavorate');
-      headerRow.push('Ore Straordinario/Suppletivo');
-      headerRow.push('Ore Ferie');
-      headerRow.push('Ore Permessi');
-      headerRow.push('Ore Malattie');
-      headerRow.push('Ore 104');
-      headerRow.push('N° Trasferte');
-      headerRow.push('Importo Trasferte');
-      headerRow.push('Importo Premio');
-      excelData.push(headerRow);
-
-      // Seconda riga con giorni settimana
-      const dayNamesRow = ['', ''];
-      giorni.forEach(giorno => {
-        const giornoSettimana = giorno.toLocaleDateString('it-IT', { weekday: 'short' });
-        dayNamesRow.push(giornoSettimana);
-      });
-      // Aggiungi celle vuote per le nuove colonne totali
-      dayNamesRow.push('', '', '', '', '', '', '', '', '');
-      excelData.push(dayNamesRow);
-
-      // Righe per ogni utente
+      // === RIGA 1: Nome ===
+      const row1: (string | null)[] = ['Nome', '', ''];
       users.forEach(user => {
-        const row = [user.nome, user.cognome];
+        row1.push(user.nome);
+        for (let i = 1; i < COLS_PER_USER; i++) row1.push(null);
+      });
+      excelData.push(row1);
 
-        // Variabili per calcolare i totali
-        let totaleOreUtente = 0;
-        let totaleStraordinari = 0;
-        let totaleFerie = 0;
-        let totaleMalattie = 0;
-        let totale104 = 0;
-        let totalePermessi = 0;
-        let numeroTrasferte = 0;
+      // === RIGA 2: Cognome ===
+      const row2: (string | null)[] = ['Cognome', '', ''];
+      users.forEach(user => {
+        row2.push(user.cognome);
+        for (let i = 1; i < COLS_PER_USER; i++) row2.push(null);
+      });
+      excelData.push(row2);
 
-        giorni.forEach(giorno => {
-          const dataISO = toISODate(giorno);
-          const presenza = presenze.find(
-            p => p.user_id === user.id && p.data === dataISO
-          );
-          // Filtra festività per sede: include solo globali (sede = null) o quelle della sede utente
-          const festivo = festivi.find(f =>
+      // === RIGA 3: Intestazioni colonne ===
+      const row3: (string | null)[] = [MESI_ITALIANI[mese - 1].toUpperCase(), '', ''];
+      users.forEach(() => {
+        row3.push('ORARIO', 'STR/SUP', 'MAL', 'FER', 'PER', 'L104', 'TR');
+      });
+      excelData.push(row3);
+
+      // === RIGHE DATI: Giorni del mese ===
+      // Variabili per totali per utente
+      const totaliUtenti = users.map(() => ({
+        orario: 0,
+        straordinari: 0,
+        malattia: 0,
+        ferie: 0,
+        permessi: 0,
+        legge104: 0,
+        trasferte: 0,
+      }));
+
+      giorni.forEach((giorno, idx) => {
+        const dataISO = toISODate(giorno);
+        const dayOfWeek = giorniSettimana[giorno.getDay()];
+        const dayNum = giorno.getDate();
+
+        // Verifica se è festivo (globale)
+        const festivoGlobale = festivi.find(f => f.data === dataISO && f.sede === null);
+        const isFestivo = festivoGlobale?.tipo === 'festivo';
+        const isSemifestivo = festivoGlobale?.tipo === 'semifestivo';
+
+        const row: (string | number | null)[] = [
+          dayNum,
+          dayOfWeek,
+          isFestivo ? 'FEST' : (isSemifestivo ? 'SEMI' : null),
+        ];
+
+        users.forEach((user, userIdx) => {
+          // Verifica festivo per sede utente
+          const festivoUtente = festivi.find(f =>
             f.data === dataISO &&
             (f.sede === null || f.sede === user.sede)
           );
+          const isUserFestivo = festivoUtente?.tipo === 'festivo';
 
-          if (festivo) {
-            row.push(festivo.tipo === 'festivo' ? 'FEST' : 'SEMI');
+          const presenza = presenze.find(
+            p => p.user_id === user.id && p.data === dataISO
+          );
+
+          if (isUserFestivo && !presenza) {
+            // Giorno festivo senza presenza
+            row.push(null, null, null, null, null, null, null);
           } else if (presenza) {
-            const ore = presenza.ore_totali || 0;
-            totaleOreUtente += ore;
-            totaleStraordinari += presenza.straordinari || 0;
-            totaleFerie += presenza.ferie || 0;
-            totaleMalattie += presenza.malattia || 0;
-            totale104 += presenza.legge_104 || 0;
-            totalePermessi += presenza.permessi || 0;
-            if (presenza.trasferta) {
-              numeroTrasferte += 1;
-            }
+            const oreTotali = presenza.ore_totali || 0;
+            const straordinari = presenza.straordinari || 0;
+            const malattia = presenza.malattia || 0;
+            const ferie = presenza.ferie || 0;
+            const permessi = presenza.permessi || 0;
+            const legge104 = presenza.legge_104 || 0;
+            const trasferta = presenza.trasferta ? 1 : 0;
 
-            // Costruisci stringa con tutti i dettagli
-            let cellValue = formatOreTotali(ore);
-            const dettagli = [];
+            // Accumula totali
+            totaliUtenti[userIdx].orario += oreTotali;
+            totaliUtenti[userIdx].straordinari += straordinari;
+            totaliUtenti[userIdx].malattia += malattia;
+            totaliUtenti[userIdx].ferie += ferie;
+            totaliUtenti[userIdx].permessi += permessi;
+            totaliUtenti[userIdx].legge104 += legge104;
+            totaliUtenti[userIdx].trasferte += trasferta;
 
-            if (presenza.straordinari > 0) {
-              dettagli.push(`STR/SUP:${presenza.straordinari}h`);
-            }
-            if (presenza.trasferta) {
-              dettagli.push(`TR`);
-            }
-            if (presenza.malattia > 0) {
-              dettagli.push(`MAL:${presenza.malattia}h`);
-            }
-            if (presenza.legge_104 > 0) {
-              dettagli.push(`L104:${presenza.legge_104}h`);
-            }
-            if (presenza.ferie > 0) {
-              dettagli.push(`FER:${presenza.ferie}h`);
-            }
-            if (presenza.permessi > 0) {
-              dettagli.push(`PER:${presenza.permessi}h`);
-            }
-
-            if (dettagli.length > 0) {
-              cellValue += ` (${dettagli.join(', ')})`;
-            }
-
-            row.push(cellValue);
+            row.push(
+              oreTotali > 0 ? formatOreTotali(oreTotali) : '-',
+              straordinari > 0 ? formatOreTotali(straordinari) : null,
+              malattia > 0 ? formatOreTotali(malattia) : null,
+              ferie > 0 ? formatOreTotali(ferie) : null,
+              permessi > 0 ? formatOreTotali(permessi) : null,
+              legge104 > 0 ? formatOreTotali(legge104) : null,
+              trasferta > 0 ? trasferta : null
+            );
           } else {
-            row.push('-');
+            row.push('-', null, null, null, null, null, null);
           }
         });
-
-        // Calcola ore lavorate (ore ordinarie = totale - straordinari)
-        const oreLavorate = totaleOreUtente - totaleStraordinari;
-
-        // Calcola importo trasferte (numero giorni * importo per trasferta)
-        const importoTrasferte = numeroTrasferte * (user.importo_trasferte || 0);
-
-        // Trova premio per questo utente
-        const premioUtente = premi.find(p => p.user_id === user.id);
-        const importoPremio = premioUtente?.importo || 0;
-
-        // Aggiungi colonne totali
-        row.push(formatOreTotali(oreLavorate));
-        row.push(formatOreTotali(totaleStraordinari));
-        row.push(formatOreTotali(totaleFerie));
-        row.push(formatOreTotali(totalePermessi));
-        row.push(formatOreTotali(totaleMalattie));
-        row.push(formatOreTotali(totale104));
-        row.push(numeroTrasferte > 0 ? numeroTrasferte.toString() : '-');
-        row.push(importoTrasferte > 0 ? `€${importoTrasferte.toFixed(2)}` : '-');
-        row.push(importoPremio > 0 ? `€${importoPremio.toFixed(2)}` : '-');
 
         excelData.push(row);
       });
 
-      // Crea workbook e worksheet
+      // === RIGA TOTALI ===
+      const rowTotali: (string | number | null)[] = ['', 'TOTALI', ''];
+      totaliUtenti.forEach((totali) => {
+        rowTotali.push(
+          formatOreTotali(totali.orario),
+          totali.straordinari > 0 ? formatOreTotali(totali.straordinari) : null,
+          totali.malattia > 0 ? formatOreTotali(totali.malattia) : null,
+          totali.ferie > 0 ? formatOreTotali(totali.ferie) : null,
+          totali.permessi > 0 ? formatOreTotali(totali.permessi) : null,
+          totali.legge104 > 0 ? formatOreTotali(totali.legge104) : null,
+          totali.trasferte > 0 ? totali.trasferte : null
+        );
+      });
+      excelData.push(rowTotali);
+
+      // === RIGA VUOTA ===
+      excelData.push([]);
+
+      // === RIGA IMPORTO PREMIO ===
+      const rowPremio: (string | number | null)[] = ['', 'IMPORTO PREMIO', ''];
+      users.forEach((user) => {
+        const premio = premi.find(p => p.user_id === user.id);
+        const importo = premio?.importo || 0;
+        rowPremio.push(importo > 0 ? `€${importo.toFixed(2)}` : null);
+        for (let i = 1; i < COLS_PER_USER; i++) rowPremio.push(null);
+      });
+      excelData.push(rowPremio);
+
+      // === RIGA IMPORTO TRASFERTE ===
+      const rowTrasferte: (string | number | null)[] = ['', 'IMPORTO TRASFERTE', ''];
+      users.forEach((user, userIdx) => {
+        const importo = totaliUtenti[userIdx].trasferte * (user.importo_trasferte || 0);
+        rowTrasferte.push(importo > 0 ? `€${importo.toFixed(2)}` : null);
+        for (let i = 1; i < COLS_PER_USER; i++) rowTrasferte.push(null);
+      });
+      excelData.push(rowTrasferte);
+
+      // === CREA WORKBOOK E WORKSHEET ===
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(excelData);
 
-      // Imposta larghezza colonne
-      const colWidths = [{ wch: 15 }, { wch: 15 }];
-      giorni.forEach(() => colWidths.push({ wch: 8 }));
-      // Aggiungi larghezza per le nuove colonne totali
-      colWidths.push({ wch: 15 }); // Ore Lavorate
-      colWidths.push({ wch: 20 }); // Ore Straordinario/Suppletivo
-      colWidths.push({ wch: 12 }); // Ore Ferie
-      colWidths.push({ wch: 12 }); // Ore Permessi
-      colWidths.push({ wch: 12 }); // Ore Malattie
-      colWidths.push({ wch: 12 }); // Ore 104
-      colWidths.push({ wch: 15 }); // N° Trasferte
-      colWidths.push({ wch: 18 }); // Importo Trasferte
-      colWidths.push({ wch: 15 }); // Importo Premio
+      // === IMPOSTA LARGHEZZA COLONNE ===
+      const colWidths: { wch: number }[] = [
+        { wch: 4 },  // Giorno numero
+        { wch: 8 },  // Giorno settimana / TOTALI
+        { wch: 5 },  // FEST
+      ];
+      users.forEach(() => {
+        colWidths.push(
+          { wch: 8 },  // ORARIO
+          { wch: 8 },  // STR/SUP
+          { wch: 8 },  // MAL
+          { wch: 8 },  // FER
+          { wch: 8 },  // PER
+          { wch: 8 },  // L104
+          { wch: 4 }   // TR
+        );
+      });
       ws['!cols'] = colWidths;
 
-      // Aggiungi worksheet al workbook
+      // === MERGE CELLE per nomi e cognomi ===
+      const merges: XLSX.Range[] = [];
+      users.forEach((_, userIdx) => {
+        const startCol = FIXED_COLS + userIdx * COLS_PER_USER;
+        const endCol = startCol + COLS_PER_USER - 1;
+        // Merge Nome (riga 0)
+        merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: endCol } });
+        // Merge Cognome (riga 1)
+        merges.push({ s: { r: 1, c: startCol }, e: { r: 1, c: endCol } });
+      });
+      ws['!merges'] = merges;
+
+      // === AGGIUNGI WORKSHEET AL WORKBOOK ===
       XLSX.utils.book_append_sheet(wb, ws, `Presenze ${MESI_ITALIANI[mese - 1]}`);
 
-      // Salva file
-      const filename = `Presenze_${MESI_ITALIANI[mese - 1]}_${anno}_${Date.now()}.xlsx`;
+      // === SALVA FILE ===
+      const filename = `Presenze_${MESI_ITALIANI[mese - 1]}_${anno}.xlsx`;
       XLSX.writeFile(wb, filename);
 
       showToast('Excel esportato con successo', 'success');
