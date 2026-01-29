@@ -176,9 +176,9 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
         assenzeValid.permessi = true;
         canSave = false;
       }
-    } else if (orePresenza > orePreviste && totaleAssenze > 0) {
-      // Ore lavorate > ore previste E ci sono assenze: incoerenza
-      // Non puoi avere straordinari e assenze contemporaneamente
+    } else if (orePresenza >= orePreviste && totaleAssenze > 0) {
+      // Ore lavorate >= ore previste E ci sono assenze: incoerenza
+      // Non puoi avere ore complete/straordinari e assenze contemporaneamente
       if (formData.malattia > 0) assenzeValid.malattia = true;
       if (formData.legge_104 > 0) assenzeValid.legge_104 = true;
       if (formData.ferie > 0) assenzeValid.ferie = true;
@@ -434,7 +434,8 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 max="24"
                 value={formData.straordinari}
                 onChange={(e) => handleChange('straordinari', parseFloat(e.target.value) || 0)}
-                className="input"
+                className="input bg-gray-100 cursor-not-allowed"
+                readOnly
                 disabled={isLocked && !isUserAdmin}
               />
             </div>
@@ -531,7 +532,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                   {orePresenza < orePreviste ? (
                     <>Le ore lavorate ({formatOreTotali(orePresenza)}) sono inferiori alle ore previste ({formatOreTotali(orePreviste)}). Compilare malattia, legge 104 o ferie per giustificare la differenza.</>
                   ) : (
-                    <>Le ore lavorate ({formatOreTotali(orePresenza)}) sono superiori alle ore previste ({formatOreTotali(orePreviste)}) e sono presenti assenze. Rimuovere le assenze o verificare gli straordinari.</>
+                    <>Le ore lavorate ({formatOreTotali(orePresenza)}) sono pari o superiori alle ore previste ({formatOreTotali(orePreviste)}) e sono presenti assenze. Rimuovere le assenze o verificare gli straordinari.</>
                   )}
                 </p>
               </div>
