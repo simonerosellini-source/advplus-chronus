@@ -239,6 +239,7 @@ export function PresenzeView() {
       headerRow.push('Ore Lavorate');
       headerRow.push('Ore Straordinario/Suppletivo');
       headerRow.push('Ore Ferie');
+      headerRow.push('Ore Permessi');
       headerRow.push('Ore Malattie');
       headerRow.push('Ore 104');
       headerRow.push('N° Trasferte');
@@ -252,7 +253,7 @@ export function PresenzeView() {
         dayNamesRow.push(giornoSettimana);
       });
       // Aggiungi celle vuote per le nuove colonne totali
-      dayNamesRow.push('', '', '', '', '', '', '');
+      dayNamesRow.push('', '', '', '', '', '', '', '');
       excelData.push(dayNamesRow);
 
       // Righe per ogni utente
@@ -265,6 +266,7 @@ export function PresenzeView() {
         let totaleFerie = 0;
         let totaleMalattie = 0;
         let totale104 = 0;
+        let totalePermessi = 0;
         let numeroTrasferte = 0;
 
         giorni.forEach(giorno => {
@@ -287,6 +289,7 @@ export function PresenzeView() {
             totaleFerie += presenza.ferie || 0;
             totaleMalattie += presenza.malattia || 0;
             totale104 += presenza.legge_104 || 0;
+            totalePermessi += presenza.permessi || 0;
             if (presenza.trasferta) {
               numeroTrasferte += 1;
             }
@@ -310,6 +313,9 @@ export function PresenzeView() {
             if (presenza.ferie > 0) {
               dettagli.push(`FER:${presenza.ferie}h`);
             }
+            if (presenza.permessi > 0) {
+              dettagli.push(`PER:${presenza.permessi}h`);
+            }
 
             if (dettagli.length > 0) {
               cellValue += ` (${dettagli.join(', ')})`;
@@ -331,6 +337,7 @@ export function PresenzeView() {
         row.push(formatOreTotali(oreLavorate));
         row.push(formatOreTotali(totaleStraordinari));
         row.push(formatOreTotali(totaleFerie));
+        row.push(formatOreTotali(totalePermessi));
         row.push(formatOreTotali(totaleMalattie));
         row.push(formatOreTotali(totale104));
         row.push(numeroTrasferte > 0 ? numeroTrasferte.toString() : '-');
@@ -350,6 +357,7 @@ export function PresenzeView() {
       colWidths.push({ wch: 15 }); // Ore Lavorate
       colWidths.push({ wch: 20 }); // Ore Straordinario/Suppletivo
       colWidths.push({ wch: 12 }); // Ore Ferie
+      colWidths.push({ wch: 12 }); // Ore Permessi
       colWidths.push({ wch: 12 }); // Ore Malattie
       colWidths.push({ wch: 12 }); // Ore 104
       colWidths.push({ wch: 15 }); // N° Trasferte
