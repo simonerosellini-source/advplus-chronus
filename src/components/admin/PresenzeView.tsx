@@ -97,7 +97,7 @@ export function PresenzeView() {
 
       // Carica premi mensili
       const { data: premiData, error: premiError } = await supabase
-        .from('premi_mensili')
+        .from('premi_mensili' as any)
         .select('*')
         .eq('anno', anno)
         .eq('mese', mese);
@@ -258,7 +258,7 @@ export function PresenzeView() {
       if (premioEsistente) {
         // Aggiorna premio esistente
         const { error } = await supabase
-          .from('premi_mensili')
+          .from('premi_mensili' as any)
           .update({ importo })
           .eq('id', premioEsistente.id);
 
@@ -266,7 +266,7 @@ export function PresenzeView() {
       } else if (importo > 0) {
         // Crea nuovo premio solo se importo > 0
         const { error } = await supabase
-          .from('premi_mensili')
+          .from('premi_mensili' as any)
           .insert({
             user_id: selectedUserForPremio.id,
             anno,
