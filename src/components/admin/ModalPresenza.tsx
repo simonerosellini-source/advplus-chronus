@@ -437,16 +437,18 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
               />
             </div>
             <div>
-              <label className="flex items-center gap-2 cursor-pointer h-[42px] mt-6">
-                <input
-                  type="checkbox"
-                  checked={formData.trasferta}
-                  onChange={(e) => handleChange('trasferta', e.target.checked)}
-                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                  disabled={isLocked && !isUserAdmin}
-                />
-                <span className="text-sm font-medium text-gray-700">Trasferta</span>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Permessi (ore)
               </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.permessi}
+                onChange={(e) => handleChange('permessi', parseFloat(e.target.value) || 0)}
+                className={assenzeValid.permessi ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -460,20 +462,6 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.malattia}
                 onChange={(e) => handleChange('malattia', parseFloat(e.target.value) || 0)}
                 className={assenzeValid.malattia ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Legge 104 (ore)
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                max="24"
-                value={formData.legge_104}
-                onChange={(e) => handleChange('legge_104', parseFloat(e.target.value) || 0)}
-                className={assenzeValid.legge_104 ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
               />
             </div>
             <div>
@@ -492,17 +480,29 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Permessi (ore)
+                Legge 104 (ore)
               </label>
               <input
                 type="number"
                 step="0.5"
                 min="0"
                 max="24"
-                value={formData.permessi}
-                onChange={(e) => handleChange('permessi', parseFloat(e.target.value) || 0)}
-                className={assenzeValid.permessi ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
+                value={formData.legge_104}
+                onChange={(e) => handleChange('legge_104', parseFloat(e.target.value) || 0)}
+                className={assenzeValid.legge_104 ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
               />
+            </div>
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer h-[42px] mt-6">
+                <input
+                  type="checkbox"
+                  checked={formData.trasferta}
+                  onChange={(e) => handleChange('trasferta', e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  disabled={isLocked && !isUserAdmin}
+                />
+                <span className="text-sm font-medium text-gray-700">Trasferta</span>
+              </label>
             </div>
           </div>
         </div>
