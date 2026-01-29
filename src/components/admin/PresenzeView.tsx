@@ -2,7 +2,7 @@
 
 // Vista Presenze - Griglia tipo Excel
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Download, Upload, Plus, Lock, Unlock, Mail } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Upload, Plus, Lock, Unlock, Mail, FileText } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner, TableSkeleton } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
@@ -12,6 +12,8 @@ import { ModalImport } from './ModalImport';
 import { getGiorniMese, MESI_ITALIANI, toISODate, formatOreTotali } from '@/lib/utils/date';
 import type { User, Presenza, GiornoFestivo, RigaPresenze, PremioMensile } from '@/types/database.types';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export function PresenzeView() {
   const [anno, setAnno] = useState(new Date().getFullYear());
@@ -499,6 +501,214 @@ export function PresenzeView() {
     }
   }
 
+  // Export PDF - Un dipendente per pagina
+  function handleExportPDF() {
+    try {
+      const giorni = getGiorniMese(anno, mese);
+      const giorniSettimana = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+
+      // Crea documento PDF in formato A4 portrait
+      const doc = new jsPDF('portrait', 'mm', 'a4');
+
+      users.forEach((user, userIdx) => {
+        // Aggiungi nuova pagina per ogni utente (tranne il primo)
+        if (userIdx > 0) {
+          doc.addPage();
+        }
+
+        // === INTESTAZIONE ===
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${MESI_ITALIANI[mese - 1].toUpperCase()} ${anno}`, 14, 15);
+
+        doc.setFontSize(12);
+        doc.text(`${user.nome} ${user.cognome}`, 14, 22);
+
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const ruoloText = user.ruolo === 'amministratore' ? 'Amministratore' :
+                         user.ruolo === 'dipendente' ? 'Dipendente' : 'Collaboratore';
+        doc.text(ruoloText, 14, 28);
+
+        // === CALCOLA TOTALI PER QUESTO UTENTE ===
+        let totaleOrario = 0;
+        let totaleStraordinari = 0;
+        let totaleMalattia = 0;
+        let totaleFerie = 0;
+        let totalePermessi = 0;
+        let totaleLegge104 = 0;
+        let totaleTrasferte = 0;
+
+        // === PREPARA DATI TABELLA ===
+        const tableData: (string | number)[][] = [];
+
+        giorni.forEach((giorno) => {
+          const dataISO = toISODate(giorno);
+          const dayOfWeek = giorniSettimana[giorno.getDay()];
+          const dayNum = giorno.getDate();
+
+          // Verifica festivo per sede utente
+          const festivoUtente = festivi.find(f =>
+            f.data === dataISO &&
+            (f.sede === null || f.sede === user.sede)
+          );
+          const isFestivo = festivoUtente?.tipo === 'festivo';
+          const isSemifestivo = festivoUtente?.tipo === 'semifestivo';
+
+          const presenza = presenze.find(
+            p => p.user_id === user.id && p.data === dataISO
+          );
+
+          let orario = '-';
+          let strSup = '';
+          let mal = '';
+          let fer = '';
+          let per = '';
+          let l104 = '';
+          let tr = '';
+
+          if (presenza) {
+            const oreTotali = presenza.ore_totali || 0;
+            const straordinari = presenza.straordinari || 0;
+            const malattia = presenza.malattia || 0;
+            const ferie = presenza.ferie || 0;
+            const permessi = presenza.permessi || 0;
+            const legge104 = presenza.legge_104 || 0;
+            const trasferta = presenza.trasferta ? 1 : 0;
+
+            // Accumula totali
+            totaleOrario += oreTotali;
+            totaleStraordinari += straordinari;
+            totaleMalattia += malattia;
+            totaleFerie += ferie;
+            totalePermessi += permessi;
+            totaleLegge104 += legge104;
+            totaleTrasferte += trasferta;
+
+            orario = oreTotali > 0 ? formatOreTotali(oreTotali) : '-';
+            strSup = straordinari > 0 ? formatOreTotali(straordinari) : '';
+            mal = malattia > 0 ? formatOreTotali(malattia) : '';
+            fer = ferie > 0 ? formatOreTotali(ferie) : '';
+            per = permessi > 0 ? formatOreTotali(permessi) : '';
+            l104 = legge104 > 0 ? formatOreTotali(legge104) : '';
+            tr = trasferta > 0 ? '1' : '';
+          }
+
+          tableData.push([
+            dayNum,
+            dayOfWeek,
+            isFestivo ? 'FEST' : (isSemifestivo ? 'SEMI' : ''),
+            orario,
+            strSup,
+            mal,
+            fer,
+            per,
+            l104,
+            tr
+          ]);
+        });
+
+        // === RIGA TOTALI ===
+        tableData.push([
+          '',
+          'TOTALI',
+          '',
+          formatOreTotali(totaleOrario),
+          totaleStraordinari > 0 ? formatOreTotali(totaleStraordinari) : '',
+          totaleMalattia > 0 ? formatOreTotali(totaleMalattia) : '',
+          totaleFerie > 0 ? formatOreTotali(totaleFerie) : '',
+          totalePermessi > 0 ? formatOreTotali(totalePermessi) : '',
+          totaleLegge104 > 0 ? formatOreTotali(totaleLegge104) : '',
+          totaleTrasferte > 0 ? totaleTrasferte.toString() : ''
+        ]);
+
+        // === GENERA TABELLA ===
+        autoTable(doc, {
+          startY: 32,
+          head: [['', '', '', 'ORARIO', 'STR/SUP', 'MAL', 'FER', 'PER', 'L104', 'TR']],
+          body: tableData,
+          theme: 'grid',
+          styles: {
+            fontSize: 8,
+            cellPadding: 1.5,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+          },
+          headStyles: {
+            fillColor: [30, 64, 175], // primary color
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            halign: 'center',
+          },
+          columnStyles: {
+            0: { cellWidth: 10, halign: 'center' }, // Giorno numero
+            1: { cellWidth: 12, halign: 'center' }, // Giorno settimana
+            2: { cellWidth: 12, halign: 'center', textColor: [0, 128, 0] }, // FEST (verde)
+            3: { cellWidth: 18, halign: 'center' }, // ORARIO
+            4: { cellWidth: 18, halign: 'center' }, // STR/SUP
+            5: { cellWidth: 18, halign: 'center' }, // MAL
+            6: { cellWidth: 18, halign: 'center' }, // FER
+            7: { cellWidth: 18, halign: 'center' }, // PER
+            8: { cellWidth: 18, halign: 'center' }, // L104
+            9: { cellWidth: 12, halign: 'center' }, // TR
+          },
+          didParseCell: function(data) {
+            // Evidenzia riga TOTALI
+            if (data.row.index === tableData.length - 1) {
+              data.cell.styles.fontStyle = 'bold';
+              data.cell.styles.fillColor = [240, 240, 240];
+            }
+            // Colora weekend (sab, dom)
+            const weekday = data.row.raw?.[1];
+            if ((weekday === 'sab' || weekday === 'dom') && data.row.index < tableData.length - 1) {
+              data.cell.styles.fillColor = [255, 245, 230]; // arancione chiaro
+            }
+            // Colora festivi
+            const festivo = data.row.raw?.[2];
+            if (festivo === 'FEST' && data.row.index < tableData.length - 1) {
+              data.cell.styles.fillColor = [255, 230, 230]; // rosso chiaro
+            }
+            // Colora giorni lavorativi con presenza
+            const orario = data.row.raw?.[3];
+            if (orario && orario !== '-' && weekday !== 'sab' && weekday !== 'dom' && festivo !== 'FEST' && data.row.index < tableData.length - 1) {
+              data.cell.styles.fillColor = [230, 255, 230]; // verde chiaro
+            }
+          },
+        });
+
+        // === IMPORTI IN FONDO ===
+        const finalY = (doc as any).lastAutoTable.finalY + 5;
+
+        // Premio
+        const premio = premi.find(p => p.user_id === user.id);
+        const importoPremio = premio?.importo || 0;
+
+        // Trasferte
+        const importoTrasferte = totaleTrasferte * (user.importo_trasferte || 0);
+
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+
+        if (importoPremio > 0) {
+          doc.text(`IMPORTO PREMIO: €${importoPremio.toFixed(2)}`, 14, finalY);
+        }
+
+        if (importoTrasferte > 0) {
+          doc.text(`IMPORTO TRASFERTE: €${importoTrasferte.toFixed(2)}`, 14, finalY + (importoPremio > 0 ? 5 : 0));
+        }
+      });
+
+      // === SALVA PDF ===
+      const filename = `Presenze_${MESI_ITALIANI[mese - 1]}_${anno}.pdf`;
+      doc.save(filename);
+
+      showToast('PDF esportato con successo', 'success');
+    } catch (error) {
+      console.error('Errore export PDF:', error);
+      showToast('Errore durante l\'esportazione PDF', 'error');
+    }
+  }
+
   // Debug: log festività prima del render
   console.log('PresenzeView render - festivi.length:', festivi.length, 'mese:', mese, 'anno:', anno);
 
@@ -587,6 +797,10 @@ export function PresenzeView() {
           <button onClick={handleExportExcel} className="btn-secondary text-sm py-2 px-3 flex items-center gap-2" title="Esporta presenze in Excel">
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Esporta Excel</span>
+          </button>
+          <button onClick={handleExportPDF} className="btn-outline text-sm py-2 px-3 flex items-center gap-2" title="Esporta presenze in PDF (1 dipendente per pagina)">
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Esporta PDF</span>
           </button>
         </div>
       </div>
