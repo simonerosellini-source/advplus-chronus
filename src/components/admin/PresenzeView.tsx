@@ -423,22 +423,22 @@ export function PresenzeView() {
       // === RIGA VUOTA ===
       excelData.push([]);
 
-      // === RIGA IMPORTO PREMIO ===
-      const rowPremio: (string | number | null)[] = ['', 'IMPORTO PREMIO', ''];
+      // === RIGA IMPORTO PREMIO (etichetta + valore sotto ogni utente) ===
+      const rowPremio: (string | number | null)[] = ['', '', ''];
       users.forEach((user) => {
         const premio = premi.find(p => p.user_id === user.id);
         const importo = premio?.importo || 0;
-        rowPremio.push(importo > 0 ? `€${importo.toFixed(2)}` : null);
-        for (let i = 1; i < COLS_PER_USER; i++) rowPremio.push(null);
+        // Colonne: IMPORTO PREMIO (span 3) | valore | vuoto | vuoto | vuoto
+        rowPremio.push('IMPORTO PREMIO', null, null, importo > 0 ? `€${importo.toFixed(2)}` : null, null, null, null);
       });
       excelData.push(rowPremio);
 
-      // === RIGA IMPORTO TRASFERTE ===
-      const rowTrasferte: (string | number | null)[] = ['', 'IMPORTO TRASFERTE', ''];
+      // === RIGA IMPORTO TRASFERTE (etichetta + valore sotto ogni utente) ===
+      const rowTrasferte: (string | number | null)[] = ['', '', ''];
       users.forEach((user, userIdx) => {
         const importo = totaliUtenti[userIdx].trasferte * (user.importo_trasferte || 0);
-        rowTrasferte.push(importo > 0 ? `€${importo.toFixed(2)}` : null);
-        for (let i = 1; i < COLS_PER_USER; i++) rowTrasferte.push(null);
+        // Colonne: IMPORTO TRASFERTE (span 3) | valore | vuoto | vuoto | vuoto
+        rowTrasferte.push('IMPORTO TRASFERTE', null, null, importo > 0 ? `€${importo.toFixed(2)}` : null, null, null, null);
       });
       excelData.push(rowTrasferte);
 
@@ -454,10 +454,10 @@ export function PresenzeView() {
       ];
       users.forEach(() => {
         colWidths.push(
-          { wch: 8 },  // ORARIO
+          { wch: 10 },  // ORARIO / IMPORTO PREMIO label
           { wch: 8 },  // STR/SUP
           { wch: 8 },  // MAL
-          { wch: 8 },  // FER
+          { wch: 12 },  // FER / importo valore
           { wch: 8 },  // PER
           { wch: 8 },  // L104
           { wch: 4 }   // TR
@@ -465,8 +465,13 @@ export function PresenzeView() {
       });
       ws['!cols'] = colWidths;
 
-      // === MERGE CELLE per nomi e cognomi ===
+      // === MERGE CELLE per nomi, cognomi e righe importi ===
       const merges: XLSX.Range[] = [];
+      const numGiorni = giorni.length;
+      const rowIdxTotali = 3 + numGiorni; // riga 0=Nome, 1=Cognome, 2=Headers, 3...=giorni
+      const rowIdxPremio = rowIdxTotali + 2; // dopo TOTALI e riga vuota
+      const rowIdxTrasferte = rowIdxPremio + 1;
+
       users.forEach((_, userIdx) => {
         const startCol = FIXED_COLS + userIdx * COLS_PER_USER;
         const endCol = startCol + COLS_PER_USER - 1;
@@ -474,6 +479,10 @@ export function PresenzeView() {
         merges.push({ s: { r: 0, c: startCol }, e: { r: 0, c: endCol } });
         // Merge Cognome (riga 1)
         merges.push({ s: { r: 1, c: startCol }, e: { r: 1, c: endCol } });
+        // Merge IMPORTO PREMIO label (prime 3 colonne del blocco utente)
+        merges.push({ s: { r: rowIdxPremio, c: startCol }, e: { r: rowIdxPremio, c: startCol + 2 } });
+        // Merge IMPORTO TRASFERTE label (prime 3 colonne del blocco utente)
+        merges.push({ s: { r: rowIdxTrasferte, c: startCol }, e: { r: rowIdxTrasferte, c: startCol + 2 } });
       });
       ws['!merges'] = merges;
 
