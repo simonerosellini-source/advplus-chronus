@@ -189,6 +189,11 @@ export interface Database {
         Insert: Omit<PresenzeLock, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<PresenzeLock, 'id' | 'created_at' | 'updated_at'>>;
       };
+      premi_mensili: {
+        Row: PremioMensile;
+        Insert: Omit<PremioMensile, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<PremioMensile, 'id' | 'created_at' | 'updated_at'>>;
+      };
     };
   };
 }
