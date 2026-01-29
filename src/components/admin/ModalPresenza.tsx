@@ -48,6 +48,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
     malattia: presenza?.malattia || 0,
     legge_104: presenza?.legge_104 || 0,
     ferie: presenza?.ferie || 0,
+    permessi: presenza?.permessi || 0,
     trasferta: presenza?.trasferta || false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -157,11 +158,11 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
   }, [formData.ingresso_mattina, formData.uscita_mattina, formData.ingresso_pomeriggio, formData.uscita_pomeriggio, orePreviste, orePresenza]);
 
   // Validazione orario vs piano settimanale
-  const assenzeValid = { malattia: false, legge_104: false, ferie: false };
+  const assenzeValid = { malattia: false, legge_104: false, ferie: false, permessi: false };
   let canSave = true;
 
   if (orePreviste > 0 && orePresenza > 0) {
-    const totaleAssenze = (formData.malattia || 0) + (formData.legge_104 || 0) + (formData.ferie || 0);
+    const totaleAssenze = (formData.malattia || 0) + (formData.legge_104 || 0) + (formData.ferie || 0) + (formData.permessi || 0);
 
     if (orePresenza < orePreviste) {
       // Ore lavorate < ore previste: serve giustificazione con assenze
@@ -170,6 +171,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
         assenzeValid.malattia = true;
         assenzeValid.legge_104 = true;
         assenzeValid.ferie = true;
+        assenzeValid.permessi = true;
         canSave = false;
       }
     } else if (orePresenza > orePreviste && totaleAssenze > 0) {
@@ -178,6 +180,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
       if (formData.malattia > 0) assenzeValid.malattia = true;
       if (formData.legge_104 > 0) assenzeValid.legge_104 = true;
       if (formData.ferie > 0) assenzeValid.ferie = true;
+      if (formData.permessi > 0) assenzeValid.permessi = true;
       canSave = false;
     }
   }
@@ -220,6 +223,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
         malattia: formData.malattia,
         legge_104: formData.legge_104,
         ferie: formData.ferie,
+        permessi: formData.permessi,
         trasferta: formData.trasferta,
       };
 
@@ -250,6 +254,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
         malattia: formData.malattia,
         legge_104: formData.legge_104,
         ferie: formData.ferie,
+        permessi: formData.permessi,
         trasferta: formData.trasferta,
       }, { onConflict: 'user_id,data' });
 
@@ -483,6 +488,20 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.ferie}
                 onChange={(e) => handleChange('ferie', parseFloat(e.target.value) || 0)}
                 className={assenzeValid.ferie ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Permessi (ore)
+              </label>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.permessi}
+                onChange={(e) => handleChange('permessi', parseFloat(e.target.value) || 0)}
+                className={assenzeValid.permessi ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
               />
             </div>
           </div>

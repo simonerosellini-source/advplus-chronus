@@ -92,6 +92,7 @@ export function GrigliaPresenze({
         malattia: acc.malattia + (p.malattia || 0),
         legge_104: acc.legge_104 + (p.legge_104 || 0),
         ferie: acc.ferie + (p.ferie || 0),
+        permessi: acc.permessi + (p.permessi || 0),
         trasferte: acc.trasferte + (p.trasferta ? 1 : 0),
       };
     }, {
@@ -100,6 +101,7 @@ export function GrigliaPresenze({
       malattia: 0,
       legge_104: 0,
       ferie: 0,
+      permessi: 0,
       trasferte: 0,
     });
 
@@ -195,6 +197,11 @@ export function GrigliaPresenze({
                 FER:{formatOreTotali(p.ferie)}
               </span>
             )}
+            {p.permessi > 0 && (
+              <span className="bg-violet-100 text-violet-800 px-1 rounded text-[9px]">
+                PER:{formatOreTotali(p.permessi)}
+              </span>
+            )}
           </div>
         </div>
       );
@@ -268,6 +275,11 @@ export function GrigliaPresenze({
                   {riga.totaliMensili.ferie > 0 && (
                     <div className="text-green-700">
                       Fer: {formatOreTotali(riga.totaliMensili.ferie)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.permessi > 0 && (
+                    <div className="text-violet-700">
+                      Per: {formatOreTotali(riga.totaliMensili.permessi)}
                     </div>
                   )}
                   {riga.totaliMensili.trasferte > 0 && (

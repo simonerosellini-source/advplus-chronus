@@ -53,6 +53,7 @@ export interface Presenza {
   malattia: number;
   legge_104: number;
   ferie: number;
+  permessi: number;
   trasferta: boolean;
   created_at: string;
   updated_at: string;
@@ -108,6 +109,7 @@ export interface PresenzaFormData {
   malattia?: number;
   legge_104?: number;
   ferie?: number;
+  permessi?: number;
   trasferta?: boolean;
 }
 
@@ -138,6 +140,7 @@ export interface RigaPresenze {
     malattia: number;
     legge_104: number;
     ferie: number;
+    permessi: number;
     trasferte: number; // Numero di giorni con trasferta
   };
 }
