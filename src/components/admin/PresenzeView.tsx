@@ -467,7 +467,6 @@ export function PresenzeView() {
 
       // === MERGE CELLE per nomi, cognomi e righe importi ===
       const merges: XLSX.Range[] = [];
-      const numGiorni = giorni.length;
       const rowIdxTotali = 3 + numGiorni; // riga 0=Nome, 1=Cognome, 2=Headers, 3...=giorni
       const rowIdxPremio = rowIdxTotali + 2; // dopo TOTALI e riga vuota
       const rowIdxTrasferte = rowIdxPremio + 1;
