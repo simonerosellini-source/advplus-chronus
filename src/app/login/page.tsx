@@ -1,6 +1,6 @@
 'use client';
 
-// Pagina di Login - Advisory+ Calendar
+// Pagina di Login - Presency+
 import { useState } from 'react';
 import { Logo } from '@/components/ui/Logo';
 import { login } from './actions';
@@ -35,18 +35,8 @@ export default function LoginPage() {
         {/* Card principale */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {/* Logo */}
-          <div className="mb-8">
+          <div className="mb-12 mt-4">
             <Logo />
-          </div>
-
-          {/* Titolo */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-primary mb-2">
-              Advisory+ Calendar
-            </h1>
-            <p className="text-gray-600 text-sm">
-              Sistema Calendario e Gestione Presenze
-            </p>
           </div>
 
           {/* Form di login */}

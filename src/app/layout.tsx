@@ -5,8 +5,11 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Chronus+ | Sistema Gestione Presenze',
-  description: 'Chronus+ - Sistema Calendario e Gestione Presenze Aziendale',
+  title: 'Presency+ | Sistema Gestione Presenze',
+  description: 'Presency+ - Sistema Calendario e Gestione Presenze Aziendale',
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({

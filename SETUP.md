@@ -1,4 +1,4 @@
-# Setup Rapido - Advisory+ Calendar
+# Setup Rapido - Presency+ by Advisory+
 
 Guida veloce per mettere in produzione l'applicazione in 15 minuti.
 
@@ -30,7 +30,7 @@ Guida veloce per mettere in produzione l'applicazione in 15 minuti.
 ```bash
 # Clona e installa
 git clone [your-repo-url]
-cd advplus-chronus
+cd presency-plus
 npm install
 
 # Configura environment
@@ -75,7 +75,7 @@ vercel --prod
 ### Come Amministratore
 
 1. **Login**: `admin@advisoryplus.it` + password scelta
-2. **Tab "Calendario Festività"**: Clicca "Genera Festività Anno 2024"
+2. **Tab "Calendario Festività"**: Clicca "Genera Festività Anno"
 3. **Tab "Gestione Utenti"**: Crea i tuoi dipendenti/collaboratori
 4. **Tab "Presenze"**: Inizia a inserire le presenze cliccando sulle celle
 

@@ -38,6 +38,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
   const [orariSettimanali, setOrariSettimanali] = useState<OrariSettimanali | null>(null);
   const [orePreviste, setOrePreviste] = useState<number>(0);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
+  const [userHasLegge104, setUserHasLegge104] = useState(false);
   const [formData, setFormData] = useState({
     ingresso_mattina: presenza?.ingresso_mattina ? formatTime(presenza.ingresso_mattina) : '',
     uscita_mattina: presenza?.uscita_mattina ? formatTime(presenza.uscita_mattina) : '',
@@ -48,6 +49,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
     malattia: presenza?.malattia || 0,
     legge_104: presenza?.legge_104 || 0,
     ferie: presenza?.ferie || 0,
+    permessi: presenza?.permessi || 0,
     trasferta: presenza?.trasferta || false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -77,13 +79,14 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
 
       const { data: userData } = await supabase
         .from('users')
-        .select('nome, cognome, orari_settimanali')
+        .select('nome, cognome, orari_settimanali, legge_104')
         .eq('id', userId)
-        .single() as { data: { nome: string; cognome: string; orari_settimanali: OrariSettimanali | null } | null };
+        .single() as { data: { nome: string; cognome: string; orari_settimanali: OrariSettimanali | null; legge_104: boolean } | null };
 
       if (userData) {
         setUserName(`${userData.nome} ${userData.cognome}`);
         setOrariSettimanali(userData.orari_settimanali);
+        setUserHasLegge104(userData.legge_104 || false);
 
         // Calcola ore previste per il giorno della settimana
         if (userData.orari_settimanali) {
@@ -157,12 +160,11 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
   }, [formData.ingresso_mattina, formData.uscita_mattina, formData.ingresso_pomeriggio, formData.uscita_pomeriggio, orePreviste, orePresenza]);
 
   // Validazione orario vs piano settimanale
-  const assenzeValid = { malattia: false, legge_104: false, ferie: false };
+  const assenzeValid = { malattia: false, legge_104: false, ferie: false, permessi: false };
   let canSave = true;
 
-  // Per i giorni futuri, permetti sempre il salvataggio (solo assenze programmate)
-  if (!dataFutura && orePreviste > 0 && orePresenza > 0) {
-    const totaleAssenze = (formData.malattia || 0) + (formData.legge_104 || 0) + (formData.ferie || 0);
+  if (orePreviste > 0 && orePresenza > 0) {
+    const totaleAssenze = (formData.malattia || 0) + (formData.legge_104 || 0) + (formData.ferie || 0) + (formData.permessi || 0);
 
     if (orePresenza < orePreviste) {
       // Ore lavorate < ore previste: serve giustificazione con assenze
@@ -171,14 +173,16 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
         assenzeValid.malattia = true;
         assenzeValid.legge_104 = true;
         assenzeValid.ferie = true;
+        assenzeValid.permessi = true;
         canSave = false;
       }
-    } else if (orePresenza > orePreviste && totaleAssenze > 0) {
-      // Ore lavorate > ore previste E ci sono assenze: incoerenza
-      // Non puoi avere straordinari e assenze contemporaneamente
+    } else if (orePresenza >= orePreviste && totaleAssenze > 0) {
+      // Ore lavorate >= ore previste E ci sono assenze: incoerenza
+      // Non puoi avere ore complete/straordinari e assenze contemporaneamente
       if (formData.malattia > 0) assenzeValid.malattia = true;
       if (formData.legge_104 > 0) assenzeValid.legge_104 = true;
       if (formData.ferie > 0) assenzeValid.ferie = true;
+      if (formData.permessi > 0) assenzeValid.permessi = true;
       canSave = false;
     }
   }
@@ -221,6 +225,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
         malattia: formData.malattia,
         legge_104: formData.legge_104,
         ferie: formData.ferie,
+        permessi: formData.permessi,
         trasferta: formData.trasferta,
       };
 
@@ -251,6 +256,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
         malattia: formData.malattia,
         legge_104: formData.legge_104,
         ferie: formData.ferie,
+        permessi: formData.permessi,
         trasferta: formData.trasferta,
       }, { onConflict: 'user_id,data' });
 
@@ -329,24 +335,6 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
           </div>
         )}
 
-        {/* Messaggio per date future */}
-        {dataFutura && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
-            <div className="flex items-start">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-blue-800">
-                  <strong>Giorno futuro:</strong> Puoi programmare solo assenze (ferie, malattia, legge 104). Gli orari di lavoro non possono essere inseriti per date future.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Form */}
         <div className="grid grid-cols-2 gap-6">
           {/* Mattina */}
@@ -360,7 +348,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.ingresso_mattina}
                 onChange={(val) => handleChange('ingresso_mattina', val)}
                 error={!!errors.ingresso_mattina}
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                disabled={isLocked && !isUserAdmin}
               />
               {errors.ingresso_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_mattina}</p>
@@ -374,7 +362,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.uscita_mattina}
                 onChange={(val) => handleChange('uscita_mattina', val)}
                 error={!!errors.uscita_mattina}
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                disabled={isLocked && !isUserAdmin}
               />
               {errors.uscita_mattina && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_mattina}</p>
@@ -393,7 +381,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.ingresso_pomeriggio}
                 onChange={(val) => handleChange('ingresso_pomeriggio', val)}
                 error={!!errors.ingresso_pomeriggio}
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                disabled={isLocked && !isUserAdmin}
               />
               {errors.ingresso_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.ingresso_pomeriggio}</p>
@@ -407,7 +395,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 value={formData.uscita_pomeriggio}
                 onChange={(val) => handleChange('uscita_pomeriggio', val)}
                 error={!!errors.uscita_pomeriggio}
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                disabled={isLocked && !isUserAdmin}
               />
               {errors.uscita_pomeriggio && (
                 <p className="text-red-600 text-xs mt-1">{errors.uscita_pomeriggio}</p>
@@ -425,7 +413,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
             rows={3}
             className="input"
             placeholder="Note aggiuntive (opzionale)"
-            disabled={dataFutura || (isLocked && !isUserAdmin)}
+            disabled={isLocked && !isUserAdmin}
           />
         </div>
 
@@ -446,24 +434,24 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 max="24"
                 value={formData.straordinari}
                 onChange={(e) => handleChange('straordinari', parseFloat(e.target.value) || 0)}
-                className="input"
-                disabled={dataFutura || (isLocked && !isUserAdmin)}
+                className="input bg-gray-100 cursor-not-allowed"
+                readOnly
+                disabled={isLocked && !isUserAdmin}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Trasferta
+                Permessi (ore)
               </label>
-              <div className={`input flex items-center h-[42px] ${dataFutura ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} onClick={() => !dataFutura && handleChange('trasferta', !formData.trasferta)}>
-                <input
-                  type="checkbox"
-                  checked={formData.trasferta}
-                  onChange={(e) => handleChange('trasferta', e.target.checked)}
-                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                  disabled={dataFutura || (isLocked && !isUserAdmin)}
-                />
-                <span className="ml-2 text-gray-700">Presente</span>
-              </div>
+              <input
+                type="number"
+                step="0.5"
+                min="0"
+                max="24"
+                value={formData.permessi}
+                onChange={(e) => handleChange('permessi', parseFloat(e.target.value) || 0)}
+                className={assenzeValid.permessi ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -481,20 +469,6 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Legge 104 (ore)
-              </label>
-              <input
-                type="number"
-                step="0.5"
-                min="0"
-                max="24"
-                value={formData.legge_104}
-                onChange={(e) => handleChange('legge_104', parseFloat(e.target.value) || 0)}
-                className={assenzeValid.legge_104 ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Ferie (ore)
               </label>
               <input
@@ -507,19 +481,45 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                 className={assenzeValid.ferie ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
               />
             </div>
+            {userHasLegge104 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Legge 104 (ore)
+                </label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="24"
+                  value={formData.legge_104}
+                  onChange={(e) => handleChange('legge_104', parseFloat(e.target.value) || 0)}
+                  className={assenzeValid.legge_104 ? 'input border-2 border-yellow-500 bg-yellow-50' : 'input'}
+                />
+              </div>
+            )}
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer h-[42px] mt-6">
+                <input
+                  type="checkbox"
+                  checked={formData.trasferta}
+                  onChange={(e) => handleChange('trasferta', e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  disabled={isLocked && !isUserAdmin}
+                />
+                <span className="text-sm font-medium text-gray-700">Trasferta</span>
+              </label>
+            </div>
           </div>
         </div>
 
-        {/* Ore totali - solo per giorni non futuri */}
-        {!dataFutura && (
-          <div className="bg-primary text-white rounded-lg p-4 text-center">
-            <p className="text-sm opacity-90">Ore Totali</p>
-            <p className="text-3xl font-bold">{formatOreTotali(oreTotali)}</p>
-          </div>
-        )}
+        {/* Ore totali */}
+        <div className="bg-primary text-white rounded-lg p-4 text-center">
+          <p className="text-sm opacity-90">Ore Totali</p>
+          <p className="text-3xl font-bold">{formatOreTotali(oreTotali)}</p>
+        </div>
 
         {/* Messaggi di validazione */}
-        {!canSave && !dataFutura && orePreviste > 0 && (
+        {!canSave && orePreviste > 0 && (
           <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
             <div className="flex items-start">
               <div className="flex-shrink-0">
@@ -532,7 +532,7 @@ export function ModalPresenza({ userId, data, presenza, onClose, onSave, isLocke
                   {orePresenza < orePreviste ? (
                     <>Le ore lavorate ({formatOreTotali(orePresenza)}) sono inferiori alle ore previste ({formatOreTotali(orePreviste)}). Compilare malattia, legge 104 o ferie per giustificare la differenza.</>
                   ) : (
-                    <>Le ore lavorate ({formatOreTotali(orePresenza)}) sono superiori alle ore previste ({formatOreTotali(orePreviste)}) e sono presenti assenze. Rimuovere le assenze o verificare gli straordinari.</>
+                    <>Le ore lavorate ({formatOreTotali(orePresenza)}) sono pari o superiori alle ore previste ({formatOreTotali(orePreviste)}) e sono presenti assenze. Rimuovere le assenze o verificare gli straordinari.</>
                   )}
                 </p>
               </div>

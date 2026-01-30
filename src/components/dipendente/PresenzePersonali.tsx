@@ -2,7 +2,7 @@
 
 // Vista Presenze Personali per dipendenti/collaboratori
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar, Clock, TrendingUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Clock, TrendingUp, Send } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
@@ -35,6 +35,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
     presenza?: Presenza;
   } | null>(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [sendingConfirmation, setSendingConfirmation] = useState(false);
 
   const { showToast } = useToast();
   const supabase = createClient();
@@ -151,6 +152,33 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
     setSelectedPresenza(null);
   }
 
+  // Invia conferma inserimento orari all'amministrazione
+  async function handleSendConfirmation() {
+    setSendingConfirmation(true);
+    try {
+      const response = await fetch('/api/email/send-hours-confirmation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mese, anno }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast('Conferma inviata con successo all\'amministrazione', 'success');
+      } else {
+        showToast(data.error || 'Errore durante l\'invio della conferma', 'error');
+      }
+    } catch (error: any) {
+      console.error('Errore durante l\'invio della conferma:', error);
+      showToast('Errore durante l\'invio della conferma', 'error');
+    } finally {
+      setSendingConfirmation(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -194,7 +222,11 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   const oreTotaliMese = presenze.reduce((sum, p) => sum + (p.ore_totali || 0), 0);
   const giorniPresenza = presenze.filter((p) => p.ore_totali > 0).length;
   const giorniLavorativi = giorni.filter(
-    (g) => g.tipo !== 'festivo' && g.tipo !== 'futuro'
+    (g) => {
+      const dataObj = new Date(g.data);
+      const isWeekend = dataObj.getDay() === 0 || dataObj.getDay() === 6;
+      return g.tipo !== 'festivo' && g.tipo !== 'futuro' && !isWeekend;
+    }
   ).length;
   const giorniAssenza = giorniLavorativi - giorniPresenza;
   const mediaOreGiornaliere = giorniPresenza > 0 ? oreTotaliMese / giorniPresenza : 0;
@@ -251,6 +283,37 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
               <p className="text-2xl font-bold text-secondary">{formatOreTotali(mediaOreGiornaliere)}</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Bottone Conferma Inserimento */}
+      <div className="card bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-green-900 mb-1">
+              Hai completato l&apos;inserimento degli orari?
+            </h3>
+            <p className="text-sm text-green-700">
+              Clicca qui per inviare una conferma all&apos;amministrazione che hai inserito correttamente tutti gli orari per {MESI_ITALIANI[mese - 1]} {anno}
+            </p>
+          </div>
+          <button
+            onClick={handleSendConfirmation}
+            disabled={sendingConfirmation}
+            className="btn-primary flex items-center gap-2 ml-4 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {sendingConfirmation ? (
+              <>
+                <LoadingSpinner className="h-5 w-5" />
+                Invio in corso...
+              </>
+            ) : (
+              <>
+                <Send className="h-5 w-5" />
+                Conferma Inserimento
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -402,7 +465,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                   </div>
                 )}
 
-                {!giorno.presenza && giorno.tipo === 'normale' && (
+                {!giorno.presenza && giorno.tipo === 'normale' && !isWeekend && (
                   <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
                 )}
 

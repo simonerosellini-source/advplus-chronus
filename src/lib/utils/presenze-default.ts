@@ -105,6 +105,7 @@ export async function creaPresenzeDefault(
     malattia: number;
     legge_104: number;
     ferie: number;
+    permessi: number;
     ore_trasferte: number;
     note: string | null;
   }> = [];
@@ -161,6 +162,7 @@ export async function creaPresenzeDefault(
         malattia: 0,
         legge_104: 0,
         ferie: 0,
+        permessi: 0,
         ore_trasferte: 0,
         note: null,
       });
@@ -226,6 +228,7 @@ export async function creaPresenzeDefault(
       malattia: 0,
       legge_104: 0,
       ferie: 0,
+      permessi: 0,
       ore_trasferte: 0,
       note: null,
     });

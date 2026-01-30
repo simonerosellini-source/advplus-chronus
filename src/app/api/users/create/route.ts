@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendWelcomeEmail } from '@/lib/email';
 import type { RuoloUtente, Sede } from '@/types/database.types';
 
 export async function POST(request: NextRequest) {
@@ -61,6 +62,28 @@ export async function POST(request: NextRequest) {
     // Il trigger handle_new_user() dovrebbe creare automaticamente il record in public.users
     // Attendiamo un momento per sicurezza
     await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Invia email di benvenuto con le credenziali
+    // L'invio è asincrono e non bloccante - se fallisce non impedisce la creazione dell'utente
+    console.log(`🚀 Avvio invio email di benvenuto per: ${email}`);
+
+    sendWelcomeEmail({
+      nome,
+      cognome,
+      email,
+      password,
+    })
+      .then((result) => {
+        if (result.success) {
+          console.log(`✅ Email inviata con successo a: ${email}`);
+        } else {
+          console.error(`❌ Invio email fallito per ${email}:`, result.message);
+        }
+      })
+      .catch((error) => {
+        console.error('❌ Errore durante l\'invio dell\'email di benvenuto:', error);
+        // Non propagare l'errore - l'utente è stato creato comunque
+      });
 
     return NextResponse.json(
       {

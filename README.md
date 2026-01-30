@@ -1,4 +1,4 @@
-# Advisory+ Calendar
+# Presency+ by Advisory+
 
 Sistema completo di gestione presenze aziendali con interfaccia web moderna, sviluppato con Next.js 14, Supabase e Tailwind CSS.
 
@@ -51,8 +51,8 @@ Sistema completo di gestione presenze aziendali con interfaccia web moderna, svi
 ### 1. Clona il Repository
 
 ```bash
-git clone https://github.com/your-org/advplus-chronus.git
-cd advplus-chronus
+git clone https://github.com/your-org/presency-plus.git
+cd presency-plus
 ```
 
 ### 2. Installa le Dipendenze
@@ -160,7 +160,7 @@ vercel --prod
 ## 📁 Struttura del Progetto
 
 ```
-advplus-chronus/
+presency-plus/
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml          # CI/CD workflow
@@ -469,4 +469,4 @@ Per supporto tecnico o domande:
 
 ---
 
-Sviluppato con ❤️ per Advisory+ da Claude
+Sviluppato con ❤️ per Advisory+

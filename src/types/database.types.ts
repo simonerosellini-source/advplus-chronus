@@ -53,6 +53,7 @@ export interface Presenza {
   malattia: number;
   legge_104: number;
   ferie: number;
+  permessi: number;
   trasferta: boolean;
   created_at: string;
   updated_at: string;
@@ -75,6 +76,16 @@ export interface PresenzeLock {
   anno: number;
   mese: number;
   locked: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PremioMensile {
+  id: string;
+  user_id: string;
+  anno: number;
+  mese: number;
+  importo: number;
   created_at: string;
   updated_at: string;
 }
@@ -108,6 +119,7 @@ export interface PresenzaFormData {
   malattia?: number;
   legge_104?: number;
   ferie?: number;
+  permessi?: number;
   trasferta?: boolean;
 }
 
@@ -138,6 +150,7 @@ export interface RigaPresenze {
     malattia: number;
     legge_104: number;
     ferie: number;
+    permessi: number;
     trasferte: number; // Numero di giorni con trasferta
   };
 }
@@ -175,6 +188,11 @@ export interface Database {
         Row: PresenzeLock;
         Insert: Omit<PresenzeLock, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<PresenzeLock, 'id' | 'created_at' | 'updated_at'>>;
+      };
+      premi_mensili: {
+        Row: PremioMensile;
+        Insert: Omit<PremioMensile, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<PremioMensile, 'id' | 'created_at' | 'updated_at'>>;
       };
     };
   };
