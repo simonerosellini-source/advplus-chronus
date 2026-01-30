@@ -177,7 +177,9 @@ export function GrigliaPresenze({
   }
 
   // Render contenuto cella
-  function renderCellaContent(giorno: GiornoCalendario): React.ReactNode {
+  function renderCellaContent(giorno: GiornoCalendario, user: User): React.ReactNode {
+    const mostraOrario = user.mostra_orario ?? true;
+
     if (giorno.tipo === 'festivo') {
       return (
         <div className="text-center text-xs">
@@ -191,7 +193,7 @@ export function GrigliaPresenze({
       return (
         <div className="text-center text-xs">
           <div className="font-bold">SF</div>
-          <div>09:00-13:00</div>
+          {mostraOrario && <div>09:00-13:00</div>}
           <div className="text-[10px]">{giorno.festivo?.nome.substring(0, 15)}</div>
         </div>
       );
@@ -203,12 +205,12 @@ export function GrigliaPresenze({
       const p = giorno.presenza;
       return (
         <div className="text-[10px] leading-tight">
-          {p.ingresso_mattina && (
+          {mostraOrario && p.ingresso_mattina && (
             <div>
               {formatTime(p.ingresso_mattina)}-{formatTime(p.uscita_mattina)}
             </div>
           )}
-          {p.ingresso_pomeriggio && (
+          {mostraOrario && p.ingresso_pomeriggio && (
             <div>
               {formatTime(p.ingresso_pomeriggio)}-{formatTime(p.uscita_pomeriggio)}
             </div>
@@ -315,7 +317,7 @@ export function GrigliaPresenze({
                     }
                   }}
                 >
-                  {renderCellaContent(giorno)}
+                  {renderCellaContent(giorno, riga.user)}
                 </td>
               ))}
               <td className="bg-gray-50 border-l-2 border-gray-300 p-2">
