@@ -36,6 +36,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   } | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [sendingConfirmation, setSendingConfirmation] = useState(false);
+  const [mostraOrario, setMostraOrario] = useState(true);
 
   const { showToast } = useToast();
   const supabase = createClient();
@@ -63,18 +64,22 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
 
       if (presenzeError) throw presenzeError;
 
-      // Carica sede dell'utente
+      // Carica sede e mostra_orario dell'utente
       const { data: userData, error: userError } = await supabase
         .from('users')
-        .select('sede')
+        .select('sede, mostra_orario')
         .eq('id', userId)
         .single();
 
       if (userError) throw userError;
 
+      // Imposta flag mostra_orario
+      const userRecord = userData as Pick<User, 'sede' | 'mostra_orario'>;
+      setMostraOrario(userRecord.mostra_orario ?? true);
+
       // Carica festività dell'anno
       // Include festività globali (sede = null) e festività della sede dell'utente
-      const userSede = (userData as Pick<User, 'sede'>).sede;
+      const userSede = userRecord.sede;
 
       // Debug: log per verificare cosa viene caricato
       console.log('Caricamento festività per anno:', anno, 'sede utente:', userSede);
@@ -406,13 +411,13 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
 
                 {giorno.presenza && (
                   <div className="text-xs space-y-1">
-                    {giorno.presenza.ingresso_mattina && (
+                    {mostraOrario && giorno.presenza.ingresso_mattina && (
                       <div className="text-gray-700">
                         🌅 {formatTime(giorno.presenza.ingresso_mattina)}-
                         {formatTime(giorno.presenza.uscita_mattina)}
                       </div>
                     )}
-                    {giorno.presenza.ingresso_pomeriggio && (
+                    {mostraOrario && giorno.presenza.ingresso_pomeriggio && (
                       <div className="text-gray-700">
                         🌆 {formatTime(giorno.presenza.ingresso_pomeriggio)}-
                         {formatTime(giorno.presenza.uscita_pomeriggio)}
