@@ -156,15 +156,24 @@ export function GrigliaPresenze({
     if (giorno.tipo === 'semifestivo') return 'cella-semifestivo';
     if (giorno.tipo === 'futuro') return 'cella-futuro';
 
+    // Weekend: mai considerati come assenza
+    if (isWeekend) {
+      if (giorno.presenza && (giorno.presenza.ore_totali || 0) > 0) {
+        return 'cella-presente-weekend';
+      }
+      return 'cella-weekend';
+    }
+
+    // Giorni feriali
     if (giorno.presenza) {
       const ore = giorno.presenza.ore_totali || 0;
       const orePreviste = getOrePrevisteGiorno(user, dataObj);
       // Considera "presente" se ha lavorato almeno il 90% delle ore previste
-      if (ore >= orePreviste * 0.9) return isWeekend ? 'cella-presente-weekend' : 'cella-presente';
-      if (ore > 0) return isWeekend ? 'cella-parziale-weekend' : 'cella-parziale';
+      if (ore >= orePreviste * 0.9) return 'cella-presente';
+      if (ore > 0) return 'cella-parziale';
     }
 
-    return isWeekend ? 'cella-weekend' : 'cella-assente';
+    return 'cella-assente';
   }
 
   // Render contenuto cella
