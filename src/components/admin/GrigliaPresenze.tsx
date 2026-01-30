@@ -198,7 +198,7 @@ export function GrigliaPresenze({
               </span>
             )}
             {p.ferie > 0 && (
-              <span className="bg-green-100 text-green-800 px-1 rounded text-[9px]">
+              <span className="bg-amber-200 text-amber-900 px-1 rounded text-[9px]">
                 FER:{formatOreTotali(p.ferie)}
               </span>
             )}
@@ -297,7 +297,7 @@ export function GrigliaPresenze({
                     </div>
                   )}
                   {riga.totaliMensili.ferie > 0 && (
-                    <div className="text-green-700">
+                    <div className="text-amber-800">
                       Fer: {formatOreTotali(riga.totaliMensili.ferie)}
                     </div>
                   )}
