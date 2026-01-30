@@ -659,17 +659,18 @@ export function PresenzeView() {
               data.cell.styles.fillColor = [240, 240, 240];
             }
             // Colora weekend (sab, dom)
-            const weekday = data.row.raw?.[1];
+            const rawRow = data.row.raw as string[];
+            const weekday = rawRow?.[1];
             if ((weekday === 'sab' || weekday === 'dom') && data.row.index < tableData.length - 1) {
               data.cell.styles.fillColor = [255, 245, 230]; // arancione chiaro
             }
             // Colora festivi
-            const festivo = data.row.raw?.[2];
+            const festivo = rawRow?.[2];
             if (festivo === 'FEST' && data.row.index < tableData.length - 1) {
               data.cell.styles.fillColor = [255, 230, 230]; // rosso chiaro
             }
             // Colora giorni lavorativi con presenza
-            const orario = data.row.raw?.[3];
+            const orario = rawRow?.[3];
             if (orario && orario !== '-' && weekday !== 'sab' && weekday !== 'dom' && festivo !== 'FEST' && data.row.index < tableData.length - 1) {
               data.cell.styles.fillColor = [230, 255, 230]; // verde chiaro
             }
