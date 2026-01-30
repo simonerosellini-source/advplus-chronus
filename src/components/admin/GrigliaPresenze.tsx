@@ -3,7 +3,7 @@
 // Componente Griglia Presenze tipo Excel
 import { Plus } from 'lucide-react';
 import { getGiorniMese, formatTime, toISODate, isFuturo, formatOreTotali } from '@/lib/utils/date';
-import type { User, Presenza, GiornoFestivo, GiornoCalendario, RigaPresenze, PremioMensile } from '@/types/database.types';
+import type { User, Presenza, GiornoFestivo, GiornoCalendario, RigaPresenze, PremioMensile, GiornoSettimana, OrarioGiornaliero } from '@/types/database.types';
 
 interface GrigliaPresenzeProps {
   anno: number;
@@ -118,14 +118,15 @@ export function GrigliaPresenze({
 
   // Calcola ore previste per un giorno dalla configurazione utente
   function getOrePrevisteGiorno(user: User, dataObj: Date): number {
-    const giornoSettimana = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'][dataObj.getDay()] as keyof typeof user.orari_settimanali;
+    const giorniNomi: GiornoSettimana[] = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
+    const giornoSettimana = giorniNomi[dataObj.getDay()];
 
-    if (!user.orari_settimanali || !user.orari_settimanali[giornoSettimana]) {
+    if (!user.orari_settimanali) {
       return 7; // Default 7 ore se non configurato
     }
 
-    const orarioGiorno = user.orari_settimanali[giornoSettimana];
-    if (!orarioGiorno.abilitato) return 0;
+    const orarioGiorno = user.orari_settimanali[giornoSettimana] as OrarioGiornaliero | undefined;
+    if (!orarioGiorno || !orarioGiorno.abilitato) return 0;
 
     let orePreviste = 0;
 
