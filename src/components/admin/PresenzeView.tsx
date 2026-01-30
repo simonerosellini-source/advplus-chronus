@@ -653,6 +653,8 @@ export function PresenzeView() {
             9: { cellWidth: 12, halign: 'center' }, // TR
           },
           didParseCell: function(data) {
+            // Testo sempre nero
+            data.cell.styles.textColor = [0, 0, 0];
             // Evidenzia riga TOTALI
             if (data.row.index === tableData.length - 1) {
               data.cell.styles.fontStyle = 'bold';
