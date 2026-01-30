@@ -222,7 +222,11 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
   const oreTotaliMese = presenze.reduce((sum, p) => sum + (p.ore_totali || 0), 0);
   const giorniPresenza = presenze.filter((p) => p.ore_totali > 0).length;
   const giorniLavorativi = giorni.filter(
-    (g) => g.tipo !== 'festivo' && g.tipo !== 'futuro'
+    (g) => {
+      const dataObj = new Date(g.data);
+      const isWeekend = dataObj.getDay() === 0 || dataObj.getDay() === 6;
+      return g.tipo !== 'festivo' && g.tipo !== 'futuro' && !isWeekend;
+    }
   ).length;
   const giorniAssenza = giorniLavorativi - giorniPresenza;
   const mediaOreGiornaliere = giorniPresenza > 0 ? oreTotaliMese / giorniPresenza : 0;
@@ -461,7 +465,7 @@ export function PresenzePersonali({ userId }: PresenzePersonaliProps) {
                   </div>
                 )}
 
-                {!giorno.presenza && giorno.tipo === 'normale' && (
+                {!giorno.presenza && giorno.tipo === 'normale' && !isWeekend && (
                   <div className="text-xs text-gray-400 text-center mt-4">Assente</div>
                 )}
 
