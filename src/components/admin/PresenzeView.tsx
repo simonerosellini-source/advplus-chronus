@@ -641,7 +641,7 @@ export function PresenzeView() {
             halign: 'center',
           },
           columnStyles: {
-            0: { cellWidth: 10, halign: 'center' }, // Giorno numero
+            0: { cellWidth: 14, halign: 'center' }, // Giorno numero / TOTALI
             1: { cellWidth: 12, halign: 'center' }, // Giorno settimana
             2: { cellWidth: 12, halign: 'center', textColor: [0, 128, 0] }, // FEST (verde)
             3: { cellWidth: 18, halign: 'center' }, // ORARIO
