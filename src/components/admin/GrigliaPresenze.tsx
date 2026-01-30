@@ -116,8 +116,38 @@ export function GrigliaPresenze({
     return { user, giorni, ore_totali, totaliMensili };
   });
 
+  // Calcola ore previste per un giorno dalla configurazione utente
+  function getOrePrevisteGiorno(user: User, dataObj: Date): number {
+    const giornoSettimana = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'][dataObj.getDay()] as keyof typeof user.orari_settimanali;
+
+    if (!user.orari_settimanali || !user.orari_settimanali[giornoSettimana]) {
+      return 7; // Default 7 ore se non configurato
+    }
+
+    const orarioGiorno = user.orari_settimanali[giornoSettimana];
+    if (!orarioGiorno.abilitato) return 0;
+
+    let orePreviste = 0;
+
+    // Calcola ore mattina
+    if (orarioGiorno.mattina_abilitata && orarioGiorno.ingresso_mattina && orarioGiorno.uscita_mattina) {
+      const [hIn, mIn] = orarioGiorno.ingresso_mattina.split(':').map(Number);
+      const [hOut, mOut] = orarioGiorno.uscita_mattina.split(':').map(Number);
+      orePreviste += (hOut * 60 + mOut - hIn * 60 - mIn) / 60;
+    }
+
+    // Calcola ore pomeriggio
+    if (orarioGiorno.pomeriggio_abilitato && orarioGiorno.ingresso_pomeriggio && orarioGiorno.uscita_pomeriggio) {
+      const [hIn, mIn] = orarioGiorno.ingresso_pomeriggio.split(':').map(Number);
+      const [hOut, mOut] = orarioGiorno.uscita_pomeriggio.split(':').map(Number);
+      orePreviste += (hOut * 60 + mOut - hIn * 60 - mIn) / 60;
+    }
+
+    return orePreviste > 0 ? orePreviste : 7; // Default 7 se calcolo fallisce
+  }
+
   // Determina classe CSS per la cella
-  function getCellaClassName(giorno: GiornoCalendario): string {
+  function getCellaClassName(giorno: GiornoCalendario, user: User): string {
     const dataObj = new Date(giorno.data);
     const isWeekend = dataObj.getDay() === 0 || dataObj.getDay() === 6;
 
@@ -127,7 +157,9 @@ export function GrigliaPresenze({
 
     if (giorno.presenza) {
       const ore = giorno.presenza.ore_totali || 0;
-      if (ore >= 7) return isWeekend ? 'cella-presente-weekend' : 'cella-presente';
+      const orePreviste = getOrePrevisteGiorno(user, dataObj);
+      // Considera "presente" se ha lavorato almeno il 90% delle ore previste
+      if (ore >= orePreviste * 0.9) return isWeekend ? 'cella-presente-weekend' : 'cella-presente';
       if (ore > 0) return isWeekend ? 'cella-parziale-weekend' : 'cella-parziale';
     }
 
@@ -266,7 +298,7 @@ export function GrigliaPresenze({
               {riga.giorni.map((giorno) => (
                 <td
                   key={giorno.data}
-                  className={getCellaClassName(giorno)}
+                  className={getCellaClassName(giorno, riga.user)}
                   onClick={() => {
                     if (giorno.tipo !== 'festivo') {
                       onCellClick(riga.user.id, giorno.data);
