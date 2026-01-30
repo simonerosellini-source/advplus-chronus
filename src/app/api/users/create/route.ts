@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
       legge_104,
       importo_trasferte,
       sede,
-      orari_settimanali
+      orari_settimanali,
+      mostra_orario
     } = body;
 
     // Validazione
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
         importo_trasferte: importo_trasferte || 0,
         sede: sede || 'Viareggio',
         orari_settimanali: orari_settimanali || null,
+        mostra_orario: mostra_orario ?? true,
       },
     });
 
