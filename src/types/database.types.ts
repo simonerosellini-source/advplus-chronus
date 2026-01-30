@@ -37,7 +37,6 @@ export interface User {
   ingresso_pomeriggio_default: string | null;
   uscita_pomeriggio_default: string | null;
   orari_settimanali: OrariSettimanali | null;
-  mostra_orario: boolean;
 }
 
 export interface Presenza {
@@ -106,7 +105,6 @@ export interface UserFormData {
   ingresso_pomeriggio_default?: string;
   uscita_pomeriggio_default?: string;
   orari_settimanali?: OrariSettimanali | null;
-  mostra_orario?: boolean;
 }
 
 export interface PresenzaFormData {

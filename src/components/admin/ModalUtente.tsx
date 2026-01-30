@@ -47,7 +47,6 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
     legge_104: user?.legge_104 || false,
     importo_trasferte: user?.importo_trasferte || 0,
     sede: (user?.sede || 'Viareggio') as Sede,
-    mostra_orario: user?.mostra_orario ?? true,
   });
   const [orariSettimanali, setOrariSettimanali] = useState<OrariSettimanali>(
     user?.orari_settimanali || getDefaultOrariSettimanali()
@@ -103,7 +102,6 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
           importo_trasferte: formData.importo_trasferte,
           sede: formData.sede,
           orari_settimanali: orariSettimanali,
-          mostra_orario: formData.mostra_orario,
         };
 
         // @ts-ignore - Supabase type inference issue with new fields
@@ -128,7 +126,6 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
             importo_trasferte: formData.importo_trasferte,
             sede: formData.sede,
             orari_settimanali: orariSettimanali,
-            mostra_orario: formData.mostra_orario,
           }),
         });
 
@@ -283,8 +280,8 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
           </div>
         </div>
 
-        {/* Legge 104, Mostra Orario e Importo Trasferte */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* Legge 104 e Importo Trasferte */}
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="flex items-center space-x-3 cursor-pointer">
               <input
@@ -298,24 +295,7 @@ export function ModalUtente({ user, onClose }: ModalUtenteProps) {
               </span>
             </label>
             <p className="text-gray-500 text-xs mt-1 ml-7">
-              Applica benefici Legge 104
-            </p>
-          </div>
-
-          <div>
-            <label className="flex items-center space-x-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.mostra_orario}
-                onChange={(e) => handleChange('mostra_orario', e.target.checked)}
-                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Mostra Orario
-              </span>
-            </label>
-            <p className="text-gray-500 text-xs mt-1 ml-7">
-              Visibile al dipendente
+              Applica benefici previsti dalla Legge 104
             </p>
           </div>
 
