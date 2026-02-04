@@ -19,23 +19,51 @@
 
 @layer components {
   /* Stili per la griglia presenze tipo Excel */
-  /* Wrapper esterno con scrollbar orizzontale in alto tramite inversione verticale */
-  .presenze-grid {
+  /* Container wrapper per scrollbar orizzontale in alto */
+  .presenze-wrapper {
     @apply border border-gray-300 rounded-lg shadow-sm;
-    overflow: auto;
-    max-height: calc(100vh - 280px);
-    transform: scaleY(-1);
+  }
+
+  /* Scrollbar orizzontale superiore */
+  .presenze-scroll-top {
+    @apply overflow-x-auto overflow-y-hidden;
+    height: 12px;
+  }
+
+  .presenze-scroll-top::-webkit-scrollbar {
+    height: 12px;
+  }
+
+  .presenze-scroll-top::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded;
+  }
+
+  .presenze-scroll-top::-webkit-scrollbar-thumb {
+    @apply bg-gray-400 rounded;
+  }
+
+  .presenze-scroll-top::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-500;
+  }
+
+  /* Container principale della tabella */
+  .presenze-grid {
+    @apply overflow-auto;
+    max-height: calc(100vh - 320px);
+  }
+
+  /* Nascondi scrollbar orizzontale nel container principale */
+  .presenze-grid::-webkit-scrollbar:horizontal {
+    height: 0;
+    display: none;
   }
 
   .presenze-table {
     @apply min-w-full divide-y divide-gray-200;
-    /* Reinvertiamo la tabella per raddrizzare il contenuto */
-    transform: scaleY(-1);
   }
 
   .presenze-table thead {
-    /* Con la doppia inversione, sticky bottom-0 fissa l'header in alto visivamente */
-    @apply bg-primary text-white sticky bottom-0 z-10;
+    @apply bg-primary text-white sticky top-0 z-10;
   }
 
   .presenze-table th {
