@@ -1,8 +1,9 @@
 'use client';
 
 // Componente Griglia Presenze tipo Excel
+import { Plus } from 'lucide-react';
 import { getGiorniMese, formatTime, toISODate, isFuturo, formatOreTotali } from '@/lib/utils/date';
-import type { User, Presenza, GiornoFestivo, GiornoCalendario, RigaPresenze } from '@/types/database.types';
+import type { User, Presenza, GiornoFestivo, GiornoCalendario, RigaPresenze, PremioMensile, GiornoSettimana, OrarioGiornaliero } from '@/types/database.types';
 
 interface GrigliaPresenzeProps {
   anno: number;
@@ -10,7 +11,9 @@ interface GrigliaPresenzeProps {
   users: User[];
   presenze: Presenza[];
   festivi: GiornoFestivo[];
+  premi?: PremioMensile[];
   onCellClick: (userId: string, data: string) => void;
+  onPremioClick?: (user: User) => void;
 }
 
 export function GrigliaPresenze({
@@ -19,7 +22,9 @@ export function GrigliaPresenze({
   users,
   presenze,
   festivi,
+  premi = [],
   onCellClick,
+  onPremioClick,
 }: GrigliaPresenzeProps) {
   const giorniMese = getGiorniMese(anno, mese);
 
@@ -92,6 +97,7 @@ export function GrigliaPresenze({
         malattia: acc.malattia + (p.malattia || 0),
         legge_104: acc.legge_104 + (p.legge_104 || 0),
         ferie: acc.ferie + (p.ferie || 0),
+        permessi: acc.permessi + (p.permessi || 0),
         trasferte: acc.trasferte + (p.trasferta ? 1 : 0),
       };
     }, {
@@ -100,6 +106,7 @@ export function GrigliaPresenze({
       malattia: 0,
       legge_104: 0,
       ferie: 0,
+      permessi: 0,
       trasferte: 0,
     });
 
@@ -109,8 +116,39 @@ export function GrigliaPresenze({
     return { user, giorni, ore_totali, totaliMensili };
   });
 
+  // Calcola ore previste per un giorno dalla configurazione utente
+  function getOrePrevisteGiorno(user: User, dataObj: Date): number {
+    const giorniNomi: GiornoSettimana[] = ['domenica', 'lunedi', 'martedi', 'mercoledi', 'giovedi', 'venerdi', 'sabato'];
+    const giornoSettimana = giorniNomi[dataObj.getDay()];
+
+    if (!user.orari_settimanali) {
+      return 7; // Default 7 ore se non configurato
+    }
+
+    const orarioGiorno = user.orari_settimanali[giornoSettimana] as OrarioGiornaliero | undefined;
+    if (!orarioGiorno || !orarioGiorno.abilitato) return 0;
+
+    let orePreviste = 0;
+
+    // Calcola ore mattina
+    if (orarioGiorno.mattina_abilitata && orarioGiorno.ingresso_mattina && orarioGiorno.uscita_mattina) {
+      const [hIn, mIn] = orarioGiorno.ingresso_mattina.split(':').map(Number);
+      const [hOut, mOut] = orarioGiorno.uscita_mattina.split(':').map(Number);
+      orePreviste += (hOut * 60 + mOut - hIn * 60 - mIn) / 60;
+    }
+
+    // Calcola ore pomeriggio
+    if (orarioGiorno.pomeriggio_abilitato && orarioGiorno.ingresso_pomeriggio && orarioGiorno.uscita_pomeriggio) {
+      const [hIn, mIn] = orarioGiorno.ingresso_pomeriggio.split(':').map(Number);
+      const [hOut, mOut] = orarioGiorno.uscita_pomeriggio.split(':').map(Number);
+      orePreviste += (hOut * 60 + mOut - hIn * 60 - mIn) / 60;
+    }
+
+    return orePreviste > 0 ? orePreviste : 7; // Default 7 se calcolo fallisce
+  }
+
   // Determina classe CSS per la cella
-  function getCellaClassName(giorno: GiornoCalendario): string {
+  function getCellaClassName(giorno: GiornoCalendario, user: User): string {
     const dataObj = new Date(giorno.data);
     const isWeekend = dataObj.getDay() === 0 || dataObj.getDay() === 6;
 
@@ -118,13 +156,24 @@ export function GrigliaPresenze({
     if (giorno.tipo === 'semifestivo') return 'cella-semifestivo';
     if (giorno.tipo === 'futuro') return 'cella-futuro';
 
-    if (giorno.presenza) {
-      const ore = giorno.presenza.ore_totali || 0;
-      if (ore >= 7) return isWeekend ? 'cella-presente-weekend' : 'cella-presente';
-      if (ore > 0) return isWeekend ? 'cella-parziale-weekend' : 'cella-parziale';
+    // Weekend: mai considerati come assenza
+    if (isWeekend) {
+      if (giorno.presenza && (giorno.presenza.ore_totali || 0) > 0) {
+        return 'cella-presente-weekend';
+      }
+      return 'cella-weekend';
     }
 
-    return isWeekend ? 'cella-weekend' : 'cella-assente';
+    // Giorni feriali
+    if (giorno.presenza) {
+      const ore = giorno.presenza.ore_totali || 0;
+      const orePreviste = getOrePrevisteGiorno(user, dataObj);
+      // Considera "presente" se ha lavorato almeno il 90% delle ore previste
+      if (ore >= orePreviste * 0.9) return 'cella-presente';
+      if (ore > 0) return 'cella-parziale';
+    }
+
+    return 'cella-assente';
   }
 
   // Render contenuto cella
@@ -191,8 +240,13 @@ export function GrigliaPresenze({
               </span>
             )}
             {p.ferie > 0 && (
-              <span className="bg-green-100 text-green-800 px-1 rounded text-[9px]">
+              <span className="bg-amber-200 text-amber-900 px-1 rounded text-[9px]">
                 FER:{formatOreTotali(p.ferie)}
+              </span>
+            )}
+            {p.permessi > 0 && (
+              <span className="bg-violet-100 text-violet-800 px-1 rounded text-[9px]">
+                PER:{formatOreTotali(p.permessi)}
               </span>
             )}
           </div>
@@ -230,12 +284,31 @@ export function GrigliaPresenze({
           {righe.map((riga) => (
             <tr key={riga.user.id}>
               <td className="sticky left-0 bg-white z-10 font-medium border-r-2 border-gray-300">
-                {riga.user.nome} {riga.user.cognome[0]}.
+                <div className="flex items-center gap-1">
+                  <span>{riga.user.nome} {riga.user.cognome[0]}.</span>
+                  {onPremioClick && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPremioClick(riga.user);
+                      }}
+                      className="p-0.5 text-primary hover:bg-primary/10 rounded"
+                      title="Aggiungi premio"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {premi.find(p => p.user_id === riga.user.id)?.importo ? (
+                    <span className="text-[9px] text-green-600 font-semibold">
+                      €{premi.find(p => p.user_id === riga.user.id)?.importo.toFixed(0)}
+                    </span>
+                  ) : null}
+                </div>
               </td>
               {riga.giorni.map((giorno) => (
                 <td
                   key={giorno.data}
-                  className={getCellaClassName(giorno)}
+                  className={getCellaClassName(giorno, riga.user)}
                   onClick={() => {
                     if (giorno.tipo !== 'festivo') {
                       onCellClick(riga.user.id, giorno.data);
@@ -266,8 +339,13 @@ export function GrigliaPresenze({
                     </div>
                   )}
                   {riga.totaliMensili.ferie > 0 && (
-                    <div className="text-green-700">
+                    <div className="text-amber-800">
                       Fer: {formatOreTotali(riga.totaliMensili.ferie)}
+                    </div>
+                  )}
+                  {riga.totaliMensili.permessi > 0 && (
+                    <div className="text-violet-700">
+                      Per: {formatOreTotali(riga.totaliMensili.permessi)}
                     </div>
                   )}
                   {riga.totaliMensili.trasferte > 0 && (

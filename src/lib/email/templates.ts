@@ -5,9 +5,9 @@ export function createTimesheetReminderTemplate(params: {
   nome: string;
   cognome: string;
   loginUrl: string;
-  logoUrl?: string;
+  logoCid?: string;
 }) {
-  const { nome, cognome, loginUrl, logoUrl } = params;
+  const { nome, cognome, loginUrl, logoCid } = params;
 
   return {
     subject: `Presency+ - Promemoria Inserimento Ore di Lavoro`,
@@ -25,16 +25,16 @@ export function createTimesheetReminderTemplate(params: {
       <td align="center" style="padding: 40px 0;">
         <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
 
-          ${logoUrl ? `<!-- Logo -->
+          ${logoCid ? `<!-- Logo -->
           <tr>
             <td style="padding: 30px 40px 20px; text-align: center; background-color: #ffffff; border-radius: 8px 8px 0 0;">
-              <img src="${logoUrl}" alt="Presency+ by Advisory+" style="max-width: 300px; height: auto; display: block; margin: 0 auto;" />
+              <img src="cid:${logoCid}" alt="Presency+ by Advisory+" style="max-width: 300px; height: auto; display: block; margin: 0 auto;" />
             </td>
           </tr>` : ''}
 
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); ${logoUrl ? '' : 'border-radius: 8px 8px 0 0;'}">
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); ${logoCid ? '' : 'border-radius: 8px 8px 0 0;'}">
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                 ⏰ Promemoria Inserimento Ore
               </h1>
@@ -162,9 +162,9 @@ export function createHoursConfirmationTemplate(params: {
   anno: number;
   dataInvio: string;
   adminUrl: string;
-  logoUrl?: string;
+  logoCid?: string;
 }) {
-  const { nome, cognome, email, mese, anno, dataInvio, adminUrl, logoUrl } = params;
+  const { nome, cognome, email, mese, anno, dataInvio, adminUrl, logoCid } = params;
 
   return {
     subject: `Conferma Inserimento Orari - ${nome} ${cognome} (${mese} ${anno})`,
@@ -182,16 +182,16 @@ export function createHoursConfirmationTemplate(params: {
       <td align="center" style="padding: 40px 0;">
         <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
 
-          ${logoUrl ? `<!-- Logo -->
+          ${logoCid ? `<!-- Logo -->
           <tr>
             <td style="padding: 30px 40px 20px; text-align: center; background-color: #ffffff; border-radius: 8px 8px 0 0;">
-              <img src="${logoUrl}" alt="Presency+ by Advisory+" style="max-width: 300px; height: auto; display: block; margin: 0 auto;" />
+              <img src="cid:${logoCid}" alt="Presency+ by Advisory+" style="max-width: 300px; height: auto; display: block; margin: 0 auto;" />
             </td>
           </tr>` : ''}
 
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #059669 0%, #10b981 100%); ${logoUrl ? '' : 'border-radius: 8px 8px 0 0;'}">
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #059669 0%, #10b981 100%); ${logoCid ? '' : 'border-radius: 8px 8px 0 0;'}">
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                 ✅ Conferma Inserimento Orari
               </h1>
@@ -331,9 +331,9 @@ export function createWelcomeEmailTemplate(params: {
   email: string;
   password: string;
   loginUrl: string;
-  logoUrl?: string;
+  logoCid?: string;
 }) {
-  const { nome, cognome, email, password, loginUrl, logoUrl } = params;
+  const { nome, cognome, email, password, loginUrl, logoCid } = params;
 
   return {
     subject: `Benvenuto in Presency+ - Credenziali di accesso`,
@@ -351,20 +351,20 @@ export function createWelcomeEmailTemplate(params: {
       <td align="center" style="padding: 40px 0;">
         <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
 
-          ${logoUrl ? `<!-- Logo -->
+          ${logoCid ? `<!-- Logo -->
           <tr>
             <td style="padding: 30px 40px 20px; text-align: center; background-color: #ffffff; border-radius: 8px 8px 0 0;">
-              <img src="${logoUrl}" alt="Presency+ by Advisory+" style="max-width: 300px; height: auto; display: block; margin: 0 auto;" />
+              <img src="cid:${logoCid}" alt="Presency+ by Advisory+" style="max-width: 200px; height: auto; display: block; margin: 0 auto;" />
             </td>
           </tr>` : ''}
 
           <!-- Header -->
           <tr>
-            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); ${logoUrl ? '' : 'border-radius: 8px 8px 0 0;'}">
+            <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); ${logoCid ? '' : 'border-radius: 8px 8px 0 0;'}">
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
                 Benvenuto in Presency+
               </h1>
-              <p style="margin: 10px 0 0; color: #e0e7ff; font-size: 16px;">
+              <p style="margin: 10px 0 0; color: #ffffff; font-size: 16px; font-weight: 600;">
                 Sistema Gestione Presenze
               </p>
             </td>
@@ -411,21 +411,19 @@ export function createWelcomeEmailTemplate(params: {
                 </tr>
               </table>
 
-              <!-- Pulsante Accedi -->
-              <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                <tr>
-                  <td align="center">
-                    <a href="${loginUrl}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
-                      Accedi alla Piattaforma
-                    </a>
-                  </td>
-                </tr>
-              </table>
+              <!-- Testo introduttivo link -->
+              <p style="margin: 0 0 20px; color: #374151; font-size: 16px; line-height: 1.6; text-align: center;">
+                Per accedere fai click sul link di seguito riportato:
+              </p>
 
-              <!-- Link testuale -->
-              <p style="margin: 0 0 30px; color: #6b7280; font-size: 14px; text-align: center; line-height: 1.6;">
-                Oppure copia e incolla questo link nel tuo browser:<br>
-                <a href="${loginUrl}" style="color: #3b82f6; text-decoration: none; word-break: break-all;">${loginUrl}</a>
+              <!-- Link principale -->
+              <p style="margin: 0 0 15px; text-align: center;">
+                <a href="${loginUrl}" style="color: #3b82f6; text-decoration: none; font-size: 18px; font-weight: 600; word-break: break-all;">${loginUrl}</a>
+              </p>
+
+              <!-- Nota copia link -->
+              <p style="margin: 0 0 30px; color: #6b7280; font-size: 13px; text-align: center; line-height: 1.6;">
+                Oppure copia e incolla questo link nel tuo browser
               </p>
 
               <!-- Avviso sicurezza -->
