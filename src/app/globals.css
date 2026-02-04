@@ -20,19 +20,22 @@
 @layer components {
   /* Stili per la griglia presenze tipo Excel */
   .presenze-grid {
-    @apply overflow-x-auto border border-gray-300 rounded-lg shadow-sm;
+    @apply overflow-auto border border-gray-300 rounded-lg shadow-sm;
+    max-height: calc(100vh - 280px);
   }
 
   .presenze-table {
     @apply min-w-full divide-y divide-gray-200;
+    border-collapse: separate;
+    border-spacing: 0;
   }
 
   .presenze-table thead {
-    @apply bg-primary text-white sticky top-0 z-10;
+    @apply bg-primary text-white;
   }
 
-  .presenze-table th {
-    @apply px-2 py-3 text-xs font-bold uppercase tracking-wider text-center border-r border-primary-light;
+  .presenze-table thead th {
+    @apply px-2 py-3 text-xs font-bold uppercase tracking-wider text-center border-r border-primary-light sticky top-0 bg-primary z-10;
   }
 
   .presenze-table tbody {
