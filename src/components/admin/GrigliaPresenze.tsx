@@ -262,7 +262,7 @@ export function GrigliaPresenze({
       <table className="presenze-table">
         <thead>
           <tr>
-            <th className="sticky left-0 bg-primary z-20 min-w-[150px]">Nome</th>
+            <th className="sticky left-0 bottom-0 bg-primary z-30 min-w-[150px]">Nome</th>
             {giorniMese.map((data) => {
               const giorno = data.getDate();
               const giornoSettimana = ['D', 'L', 'M', 'M', 'G', 'V', 'S'][data.getDay()];
@@ -270,7 +270,7 @@ export function GrigliaPresenze({
               return (
                 <th
                   key={giorno}
-                  className={`min-w-[60px] ${isWeekend ? 'bg-primary-dark' : ''}`}
+                  className={`min-w-[60px] ${isWeekend ? 'bg-primary-dark' : 'bg-primary'}`}
                 >
                   <div>{giorno}</div>
                   <div className="text-[10px] font-normal">{giornoSettimana}</div>

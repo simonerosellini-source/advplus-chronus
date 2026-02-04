@@ -19,16 +19,23 @@
 
 @layer components {
   /* Stili per la griglia presenze tipo Excel */
+  /* Wrapper esterno con scrollbar orizzontale in alto tramite inversione verticale */
   .presenze-grid {
-    @apply overflow-x-auto border border-gray-300 rounded-lg shadow-sm;
+    @apply border border-gray-300 rounded-lg shadow-sm;
+    overflow: auto;
+    max-height: calc(100vh - 280px);
+    transform: scaleY(-1);
   }
 
   .presenze-table {
     @apply min-w-full divide-y divide-gray-200;
+    /* Reinvertiamo la tabella per raddrizzare il contenuto */
+    transform: scaleY(-1);
   }
 
   .presenze-table thead {
-    @apply bg-primary text-white sticky top-0 z-10;
+    /* Con la doppia inversione, sticky bottom-0 fissa l'header in alto visivamente */
+    @apply bg-primary text-white sticky bottom-0 z-10;
   }
 
   .presenze-table th {
