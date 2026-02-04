@@ -7,6 +7,15 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
+-- TIPI ENUM
+-- ============================================
+DO $$ BEGIN
+  CREATE TYPE sede_type AS ENUM ('Viareggio', 'Pietrasanta', 'Massa', 'Camaiore', 'Carrara');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
+
+-- ============================================
 -- TABELLA: users
 -- Estende auth.users di Supabase con informazioni aggiuntive
 -- ============================================
@@ -16,6 +25,10 @@ CREATE TABLE IF NOT EXISTS public.users (
   nome TEXT NOT NULL,
   cognome TEXT NOT NULL,
   ruolo TEXT NOT NULL CHECK (ruolo IN ('amministratore', 'dipendente', 'collaboratore')),
+  legge_104 BOOLEAN DEFAULT false,
+  importo_trasferte NUMERIC(10,2) DEFAULT 0,
+  sede sede_type DEFAULT 'Viareggio',
+  orari_settimanali JSONB DEFAULT NULL,
   data_creazione TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   attivo BOOLEAN DEFAULT TRUE,
   CONSTRAINT valid_email CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
@@ -119,171 +132,27 @@ ON public.users FOR SELECT
 TO authenticated
 USING (
   EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND ruolo = 'amministratore'
+    SELECT 1 FROM public.users u
+    WHERE u.id = auth.uid() AND u.ruolo = 'amministratore'
   )
 );
 
--- Gli utenti non amministratori possono vedere solo se stessi
-CREATE POLICY "Utenti possono vedere solo se stessi"
+-- Gli utenti possono vedere il proprio profilo
+CREATE POLICY "Utenti possono vedere il proprio profilo"
 ON public.users FOR SELECT
 TO authenticated
 USING (id = auth.uid());
 
--- Solo gli amministratori possono inserire nuovi utenti
-CREATE POLICY "Solo amministratori possono inserire utenti"
-ON public.users FOR INSERT
-TO authenticated
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND ruolo = 'amministratore'
-  )
-);
-
--- Solo gli amministratori possono aggiornare gli utenti
-CREATE POLICY "Solo amministratori possono aggiornare utenti"
+-- Gli amministratori possono modificare tutti gli utenti
+CREATE POLICY "Amministratori possono modificare tutti gli utenti"
 ON public.users FOR UPDATE
 TO authenticated
 USING (
   EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND ruolo = 'amministratore'
+    SELECT 1 FROM public.users u
+    WHERE u.id = auth.uid() AND u.ruolo = 'amministratore'
   )
 );
-
--- Gli utenti possono aggiornare solo alcuni campi del proprio profilo
-CREATE POLICY "Utenti possono aggiornare il proprio profilo"
-ON public.users FOR UPDATE
-TO authenticated
-USING (id = auth.uid())
-WITH CHECK (id = auth.uid());
-
--- ============================================
--- POLICIES PER TABELLA: presenze
--- ============================================
-
--- Gli amministratori possono vedere tutte le presenze
-CREATE POLICY "Amministratori possono vedere tutte le presenze"
-ON public.presenze FOR SELECT
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND ruolo = 'amministratore'
-  )
-);
-
--- Gli utenti non amministratori possono vedere solo le proprie presenze
-CREATE POLICY "Utenti possono vedere solo le proprie presenze"
-ON public.presenze FOR SELECT
-TO authenticated
-USING (user_id = auth.uid());
-
--- Solo gli amministratori possono inserire presenze
-CREATE POLICY "Solo amministratori possono inserire presenze"
-ON public.presenze FOR INSERT
-TO authenticated
-WITH CHECK (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND ruolo = 'amministratore'
-  )
-);
-
--- Solo gli amministratori possono aggiornare presenze
-CREATE POLICY "Solo amministratori possono aggiornare presenze"
-ON public.presenze FOR UPDATE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND ruolo = 'amministratore'
-  )
-);
-
--- Solo gli amministratori possono eliminare presenze
-CREATE POLICY "Solo amministratori possono eliminare presenze"
-ON public.presenze FOR DELETE
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND ruolo = 'amministratore'
-  )
-);
-
--- ============================================
--- POLICIES PER TABELLA: giorni_festivi
--- ============================================
-
--- Tutti gli utenti autenticati possono leggere i giorni festivi
-CREATE POLICY "Tutti possono leggere giorni festivi"
-ON public.giorni_festivi FOR SELECT
-TO authenticated
-USING (TRUE);
-
--- Solo gli amministratori possono gestire i giorni festivi
-CREATE POLICY "Solo amministratori possono gestire giorni festivi"
-ON public.giorni_festivi FOR ALL
-TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND ruolo = 'amministratore'
-  )
-);
-
--- ============================================
--- FUNZIONI UTILITY
--- ============================================
-
--- Funzione per calcolare le statistiche mensili di un utente
-CREATE OR REPLACE FUNCTION calcola_statistiche_mensili(
-  p_user_id UUID,
-  p_anno INTEGER,
-  p_mese INTEGER
-)
-RETURNS TABLE (
-  ore_totali_mese DECIMAL,
-  giorni_presenza INTEGER,
-  giorni_assenza INTEGER,
-  media_ore_giornaliere DECIMAL
-) AS $$
-BEGIN
-  RETURN QUERY
-  WITH giorni_mese AS (
-    SELECT generate_series(
-      DATE (p_anno || '-' || p_mese || '-01'),
-      DATE (p_anno || '-' || p_mese || '-01') + INTERVAL '1 month' - INTERVAL '1 day',
-      INTERVAL '1 day'
-    )::DATE AS data
-  ),
-  presenze_mese AS (
-    SELECT COALESCE(SUM(ore_totali), 0) AS tot_ore,
-           COUNT(*) FILTER (WHERE ore_totali > 0) AS giorni_pres
-    FROM public.presenze
-    WHERE user_id = p_user_id
-      AND EXTRACT(YEAR FROM data) = p_anno
-      AND EXTRACT(MONTH FROM data) = p_mese
-  ),
-  giorni_lavorativi AS (
-    SELECT COUNT(*) AS tot_giorni
-    FROM giorni_mese gm
-    LEFT JOIN public.giorni_festivi gf ON gm.data = gf.data
-    WHERE gf.data IS NULL OR gf.tipo = 'semifestivo'
-  )
-  SELECT
-    pm.tot_ore,
-    pm.giorni_pres::INTEGER,
-    (gl.tot_giorni - pm.giorni_pres)::INTEGER,
-    CASE
-      WHEN pm.giorni_pres > 0 THEN ROUND(pm.tot_ore / pm.giorni_pres, 2)
-      ELSE 0
-    END
-  FROM presenze_mese pm, giorni_lavorativi gl;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================
 -- TRIGGER: Auto-creazione record user dopo signup
@@ -291,13 +160,27 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.users (id, email, nome, cognome, ruolo)
+  INSERT INTO public.users (
+    id,
+    email,
+    nome,
+    cognome,
+    ruolo,
+    legge_104,
+    importo_trasferte,
+    sede,
+    orari_settimanali
+  )
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'nome', ''),
     COALESCE(NEW.raw_user_meta_data->>'cognome', ''),
-    COALESCE(NEW.raw_user_meta_data->>'ruolo', 'dipendente')
+    COALESCE(NULLIF(NEW.raw_user_meta_data->>'ruolo', ''), 'dipendente'),
+    COALESCE((NULLIF(NEW.raw_user_meta_data->>'legge_104', ''))::boolean, false),
+    COALESCE((NULLIF(NEW.raw_user_meta_data->>'importo_trasferte', ''))::numeric, 0),
+    COALESCE((NULLIF(NEW.raw_user_meta_data->>'sede', ''))::sede_type, 'Viareggio'),
+    NEW.raw_user_meta_data->'orari_settimanali'
   );
   RETURN NEW;
 END;
