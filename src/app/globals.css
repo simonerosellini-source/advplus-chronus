@@ -27,19 +27,20 @@
   /* Scrollbar orizzontale superiore */
   .presenze-scroll-top {
     @apply overflow-x-auto overflow-y-hidden;
-    height: 12px;
+    height: 17px;
   }
 
   .presenze-scroll-top::-webkit-scrollbar {
-    height: 12px;
+    height: 17px;
   }
 
   .presenze-scroll-top::-webkit-scrollbar-track {
-    @apply bg-gray-100 rounded;
+    @apply bg-gray-100;
   }
 
   .presenze-scroll-top::-webkit-scrollbar-thumb {
-    @apply bg-gray-400 rounded;
+    @apply bg-gray-400 border-4 border-solid border-gray-100 rounded-lg;
+    background-clip: padding-box;
   }
 
   .presenze-scroll-top::-webkit-scrollbar-thumb:hover {
