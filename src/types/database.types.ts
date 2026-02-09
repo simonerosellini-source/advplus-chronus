@@ -53,6 +53,7 @@ export interface Presenza {
   malattia: number;
   legge_104: number;
   ferie: number;
+  ferie_validate: boolean; // true = ferie approvate dall'admin
   permessi: number;
   trasferta: boolean;
   created_at: string;

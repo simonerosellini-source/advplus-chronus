@@ -2,9 +2,10 @@
 
 // Componente Calendario Ferie/Festività condiviso tra admin e dipendente
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/ui/Loading';
+import { useToast } from '@/components/ui/Toast';
 import { getGiorniMese, MESI_ITALIANI, toISODate } from '@/lib/utils/date';
 import type { GiornoFestivo, Presenza, User } from '@/types/database.types';
 
@@ -14,11 +15,13 @@ interface CalendarioFerieViewProps {
 }
 
 interface FerieUtente {
+  presenzaId: string;
   userId: string;
   nome: string;
   cognome: string;
   data: string;
   ore: number;
+  validate: boolean;
 }
 
 export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerieViewProps) {
@@ -28,8 +31,10 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   const [festivi, setFestivi] = useState<GiornoFestivo[]>([]);
   const [ferieUtenti, setFerieUtenti] = useState<FerieUtente[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [validating, setValidating] = useState<string | null>(null);
 
   const supabase = createClient();
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadData();
@@ -79,15 +84,17 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
         usersData = userData || [];
       }
 
-      // Mappa le ferie con i nomi utente
+      // Mappa le ferie con i nomi utente e stato validazione
       const ferieList: FerieUtente[] = (presenzeData || []).map((p: Presenza) => {
         const user = usersData.find(u => u.id === p.user_id);
         return {
+          presenzaId: p.id,
           userId: p.user_id,
           nome: user?.nome || '',
           cognome: user?.cognome || '',
           data: p.data,
           ore: p.ferie,
+          validate: p.ferie_validate || false,
         };
       });
 
@@ -98,6 +105,38 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
       console.error('Errore caricamento dati calendario:', error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Valida o invalida una ferie
+  async function handleToggleValidazione(presenzaId: string, currentState: boolean) {
+    setValidating(presenzaId);
+    try {
+      const { error } = await supabase
+        .from('presenze')
+        .update({ ferie_validate: !currentState })
+        .eq('id', presenzaId);
+
+      if (error) throw error;
+
+      // Aggiorna lo stato locale
+      setFerieUtenti(prev =>
+        prev.map(f =>
+          f.presenzaId === presenzaId
+            ? { ...f, validate: !currentState }
+            : f
+        )
+      );
+
+      showToast(
+        !currentState ? 'Ferie validate con successo' : 'Validazione ferie rimossa',
+        'success'
+      );
+    } catch (error) {
+      console.error('Errore validazione ferie:', error);
+      showToast('Errore durante la validazione', 'error');
+    } finally {
+      setValidating(null);
     }
   }
 
@@ -180,7 +219,9 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     } else if (isWeekend) {
       classes += 'bg-gray-100 ';
     } else if (ferie.length > 0) {
-      classes += 'bg-amber-50 ';
+      // Colore basato sulla validazione: tutte validate = verde, altrimenti ambra
+      const tutteValidate = ferie.every(f => f.validate);
+      classes += tutteValidate ? 'bg-green-50 ' : 'bg-amber-50 ';
     } else {
       classes += 'bg-white hover:bg-gray-50 ';
     }
@@ -203,7 +244,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   return (
     <div className="space-y-4">
       {/* Header con navigazione */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <button onClick={prevMonth} className="btn-outline p-2" title="Mese precedente">
             <ChevronLeft className="h-5 w-5" />
@@ -229,7 +270,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
         </div>
 
         {/* Legenda */}
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-4 text-sm flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-red-100 border border-red-300 rounded" />
             <span>Festivo</span>
@@ -240,7 +281,11 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           </div>
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-amber-100 border border-amber-300 rounded" />
-            <span>Ferie</span>
+            <span>Ferie (da validare)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
+            <span>Ferie (validate)</span>
           </div>
         </div>
       </div>
@@ -292,13 +337,45 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
                 {/* Ferie utenti */}
                 {ferie.length > 0 && (
                   <div className="space-y-1">
-                    {ferie.slice(0, 3).map((f, i) => (
-                      <div key={`${f.userId}-${i}`} className="text-xs bg-amber-200 text-amber-900 px-1 py-0.5 rounded truncate">
-                        {isAdmin ? `${f.cognome} ${f.nome[0]}.` : ''} {f.ore}h
+                    {ferie.slice(0, 3).map((f) => (
+                      <div
+                        key={f.presenzaId}
+                        className={`text-xs px-1 py-0.5 rounded truncate flex items-center justify-between gap-1 ${
+                          f.validate
+                            ? 'bg-green-200 text-green-900'
+                            : 'bg-amber-200 text-amber-900'
+                        }`}
+                      >
+                        <span className="truncate">
+                          {isAdmin ? `${f.cognome} ${f.nome[0]}.` : ''} {f.ore}h
+                        </span>
+                        {isAdmin && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleValidazione(f.presenzaId, f.validate);
+                            }}
+                            disabled={validating === f.presenzaId}
+                            className={`flex-shrink-0 p-0.5 rounded ${
+                              f.validate
+                                ? 'hover:bg-green-300 text-green-700'
+                                : 'hover:bg-amber-300 text-amber-700'
+                            }`}
+                            title={f.validate ? 'Rimuovi validazione' : 'Valida ferie'}
+                          >
+                            {validating === f.presenzaId ? (
+                              <LoadingSpinner className="h-3 w-3" />
+                            ) : f.validate ? (
+                              <X className="h-3 w-3" />
+                            ) : (
+                              <Check className="h-3 w-3" />
+                            )}
+                          </button>
+                        )}
                       </div>
                     ))}
                     {ferie.length > 3 && (
-                      <div className="text-xs text-amber-700">
+                      <div className="text-xs text-gray-600">
                         +{ferie.length - 3} altri
                       </div>
                     )}
@@ -366,27 +443,48 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           </h3>
           <div className="space-y-2 max-h-[200px] overflow-y-auto">
             {isAdmin ? (
-              // Admin: raggruppa per utente
+              // Admin: raggruppa per utente con stato validazione
               users
                 .filter(u => ferieUtenti.some(f => f.userId === u.id))
                 .map(u => {
                   const ferieUser = ferieUtenti.filter(f => f.userId === u.id);
                   const totaleOre = ferieUser.reduce((acc, f) => acc + f.ore, 0);
+                  const tutteValidate = ferieUser.every(f => f.validate);
+                  const nessunaValidata = ferieUser.every(f => !f.validate);
                   return (
-                    <div key={u.id} className="text-sm flex justify-between">
+                    <div key={u.id} className="text-sm flex justify-between items-center">
                       <span className="text-gray-600">{u.cognome} {u.nome[0]}.</span>
-                      <span className="font-medium text-amber-700">{totaleOre}h ({ferieUser.length}gg)</span>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-medium ${tutteValidate ? 'text-green-700' : 'text-amber-700'}`}>
+                          {totaleOre}h ({ferieUser.length}gg)
+                        </span>
+                        {tutteValidate && (
+                          <Check className="h-4 w-4 text-green-600" />
+                        )}
+                        {!tutteValidate && !nessunaValidata && (
+                          <span className="text-xs text-gray-500">parziale</span>
+                        )}
+                      </div>
                     </div>
                   );
                 })
             ) : (
-              // Dipendente: mostra dettaglio giorni
-              ferieUtenti.map((f, i) => (
-                <div key={i} className="text-sm flex justify-between">
+              // Dipendente: mostra dettaglio giorni con stato
+              ferieUtenti.map((f) => (
+                <div key={f.presenzaId} className="text-sm flex justify-between items-center">
                   <span className="text-gray-600">
                     {new Date(f.data).getDate()} {MESI_ITALIANI[mese - 1].substring(0, 3)}
                   </span>
-                  <span className="font-medium text-amber-700">{f.ore}h</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`font-medium ${f.validate ? 'text-green-700' : 'text-amber-700'}`}>
+                      {f.ore}h
+                    </span>
+                    {f.validate ? (
+                      <Check className="h-4 w-4 text-green-600" title="Validata" />
+                    ) : (
+                      <span className="text-xs text-amber-600">in attesa</span>
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -395,11 +493,23 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
             )}
           </div>
           {ferieUtenti.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-3 pt-3 border-t border-gray-200 space-y-1">
               <div className="text-sm font-semibold flex justify-between">
                 <span>Totale ore ferie:</span>
-                <span className="text-amber-700">
+                <span className="text-gray-700">
                   {ferieUtenti.reduce((acc, f) => acc + f.ore, 0)}h
+                </span>
+              </div>
+              <div className="text-xs flex justify-between text-gray-500">
+                <span>Validate:</span>
+                <span className="text-green-600">
+                  {ferieUtenti.filter(f => f.validate).reduce((acc, f) => acc + f.ore, 0)}h
+                </span>
+              </div>
+              <div className="text-xs flex justify-between text-gray-500">
+                <span>Da validare:</span>
+                <span className="text-amber-600">
+                  {ferieUtenti.filter(f => !f.validate).reduce((acc, f) => acc + f.ore, 0)}h
                 </span>
               </div>
             </div>
