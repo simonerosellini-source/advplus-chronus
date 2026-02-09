@@ -481,7 +481,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
                       {f.ore}h
                     </span>
                     {f.validate ? (
-                      <Check className="h-4 w-4 text-green-600" title="Validata" />
+                      <span title="Validata"><Check className="h-4 w-4 text-green-600" /></span>
                     ) : (
                       <span className="text-xs text-amber-600">in attesa</span>
                     )}
