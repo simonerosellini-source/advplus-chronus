@@ -52,37 +52,28 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
 
       if (festiviError) throw festiviError;
 
-      // Carica presenze con ferie del mese
+      // Carica presenze con ferie del mese (tutti gli utenti, anche per dipendente)
       const primoGiorno = `${anno}-${String(mese).padStart(2, '0')}-01`;
       const ultimoGiorno = new Date(anno, mese, 0);
       const ultimoGiornoStr = `${anno}-${String(mese).padStart(2, '0')}-${ultimoGiorno.getDate()}`;
 
-      let presenzeQuery = supabase
+      const { data: presenzeData, error: presenzeError } = await supabase
         .from('presenze')
         .select('*')
         .gte('data', primoGiorno)
         .lte('data', ultimoGiornoStr)
         .gt('ferie', 0); // Solo presenze con ferie
 
-      // Se è un dipendente, filtra solo le sue ferie
-      if (userId && !isAdmin) {
-        presenzeQuery = presenzeQuery.eq('user_id', userId);
-      }
-
-      const { data: presenzeData, error: presenzeError } = await presenzeQuery;
       if (presenzeError) throw presenzeError;
 
-      // Se admin, carica anche gli utenti per mostrare i nomi
-      let usersData: User[] = [];
-      if (isAdmin) {
-        const { data: userData, error: usersError } = await supabase
-          .from('users')
-          .select('*')
-          .order('cognome', { ascending: true });
+      // Carica sempre gli utenti per mostrare i nomi (sia admin che dipendente)
+      const { data: userData, error: usersError } = await supabase
+        .from('users')
+        .select('*')
+        .order('cognome', { ascending: true });
 
-        if (usersError) throw usersError;
-        usersData = userData || [];
-      }
+      if (usersError) throw usersError;
+      const usersData: User[] = userData || [];
 
       // Mappa le ferie con i nomi utente e stato validazione
       const ferieList: FerieUtente[] = (presenzeData || []).map((p: Presenza) => {
@@ -348,7 +339,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
                         }`}
                       >
                         <span className="truncate">
-                          {isAdmin ? `${f.cognome} ${f.nome[0]}.` : ''} {f.ore}h
+                          {f.cognome} {f.nome[0]}. {f.ore}h
                         </span>
                         {isAdmin && (
                           <button
@@ -443,52 +434,31 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
             Ferie del mese
           </h3>
           <div className="space-y-2 max-h-[200px] overflow-y-auto">
-            {isAdmin ? (
-              // Admin: raggruppa per utente con stato validazione
-              users
-                .filter(u => ferieUtenti.some(f => f.userId === u.id))
-                .map(u => {
-                  const ferieUser = ferieUtenti.filter(f => f.userId === u.id);
-                  const totaleOre = ferieUser.reduce((acc, f) => acc + f.ore, 0);
-                  const tutteValidate = ferieUser.every(f => f.validate);
-                  const nessunaValidata = ferieUser.every(f => !f.validate);
-                  return (
-                    <div key={u.id} className="text-sm flex justify-between items-center">
-                      <span className="text-gray-600">{u.cognome} {u.nome[0]}.</span>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-medium ${tutteValidate ? 'text-green-700' : 'text-amber-700'}`}>
-                          {totaleOre}h ({ferieUser.length}gg)
-                        </span>
-                        {tutteValidate && (
-                          <Check className="h-4 w-4 text-green-600" />
-                        )}
-                        {!tutteValidate && !nessunaValidata && (
-                          <span className="text-xs text-gray-500">parziale</span>
-                        )}
-                      </div>
+            {/* Mostra ferie raggruppate per utente (sia admin che dipendente) */}
+            {users
+              .filter(u => ferieUtenti.some(f => f.userId === u.id))
+              .map(u => {
+                const ferieUser = ferieUtenti.filter(f => f.userId === u.id);
+                const totaleOre = ferieUser.reduce((acc, f) => acc + f.ore, 0);
+                const tutteValidate = ferieUser.every(f => f.validate);
+                const nessunaValidata = ferieUser.every(f => !f.validate);
+                return (
+                  <div key={u.id} className="text-sm flex justify-between items-center">
+                    <span className="text-gray-600">{u.cognome} {u.nome[0]}.</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium ${tutteValidate ? 'text-green-700' : 'text-amber-700'}`}>
+                        {totaleOre}h ({ferieUser.length}gg)
+                      </span>
+                      {tutteValidate && (
+                        <Check className="h-4 w-4 text-green-600" />
+                      )}
+                      {!tutteValidate && !nessunaValidata && (
+                        <span className="text-xs text-gray-500">parziale</span>
+                      )}
                     </div>
-                  );
-                })
-            ) : (
-              // Dipendente: mostra dettaglio giorni con stato
-              ferieUtenti.map((f) => (
-                <div key={f.presenzaId} className="text-sm flex justify-between items-center">
-                  <span className="text-gray-600">
-                    {new Date(f.data).getDate()} {MESI_ITALIANI[mese - 1].substring(0, 3)}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className={`font-medium ${f.validate ? 'text-green-700' : 'text-amber-700'}`}>
-                      {f.ore}h
-                    </span>
-                    {f.validate ? (
-                      <span title="Validata"><Check className="h-4 w-4 text-green-600" /></span>
-                    ) : (
-                      <span className="text-xs text-amber-600">in attesa</span>
-                    )}
                   </div>
-                </div>
-              ))
-            )}
+                );
+              })}
             {ferieUtenti.length === 0 && (
               <p className="text-sm text-gray-500">Nessuna ferie questo mese</p>
             )}
