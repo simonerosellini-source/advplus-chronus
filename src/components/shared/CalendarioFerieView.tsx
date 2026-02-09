@@ -112,7 +112,8 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   async function handleToggleValidazione(presenzaId: string, currentState: boolean) {
     setValidating(presenzaId);
     try {
-      const { error } = await supabase
+      // Cast as any per bypassare i tipi Supabase che non includono ferie_validate
+      const { error } = await (supabase as any)
         .from('presenze')
         .update({ ferie_validate: !currentState })
         .eq('id', presenzaId);
