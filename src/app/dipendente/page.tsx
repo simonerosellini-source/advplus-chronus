@@ -39,7 +39,7 @@ export default async function DipendenteDashboard() {
       </div>
 
       {/* Dashboard con tabs */}
-      <DipendenteDashboardTabs userId={user.id} />
+      <DipendenteDashboardTabs userId={user.id} ruolo={userData.ruolo} />
     </div>
   );
 }
