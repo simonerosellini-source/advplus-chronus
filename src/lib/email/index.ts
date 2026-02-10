@@ -283,4 +283,11 @@ export async function sendHoursConfirmationToAdmin(params: {
 
 // Esporta anche le funzioni di utilità
 export { createEmailTransport, verifyEmailConnection } from './smtp';
-export { createWelcomeEmailTemplate, createTimesheetReminderTemplate, createHoursConfirmationTemplate } from './templates';
+export {
+  createWelcomeEmailTemplate,
+  createTimesheetReminderTemplate,
+  createHoursConfirmationTemplate,
+  createVacationApprovedTemplate,
+  createVacationRejectedTemplate,
+  createVacationValidationRequestTemplate,
+} from './templates';

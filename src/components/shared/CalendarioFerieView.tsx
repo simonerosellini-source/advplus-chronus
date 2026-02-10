@@ -2,7 +2,7 @@
 
 // Componente Calendario Ferie/Festività condiviso tra admin e dipendente
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Circle, Send } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
@@ -19,6 +19,7 @@ interface FerieUtente {
   userId: string;
   nome: string;
   cognome: string;
+  email: string;
   data: string;
   ore: number;
   validate: boolean;
@@ -32,13 +33,25 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   const [ferieUtenti, setFerieUtenti] = useState<FerieUtente[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [validating, setValidating] = useState<string | null>(null);
+  const [modalGiorno, setModalGiorno] = useState<string | null>(null);
+  const [sendingRequest, setSendingRequest] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const supabase = createClient();
   const { showToast } = useToast();
 
   useEffect(() => {
     loadData();
+    loadCurrentUser();
   }, [anno, mese, userId]);
+
+  async function loadCurrentUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase.from('users').select('*').eq('id', user.id).single();
+      if (data) setCurrentUser(data as User);
+    }
+  }
 
   async function loadData() {
     setLoading(true);
@@ -67,6 +80,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           userId: p.user_id,
           nome: user?.nome || '',
           cognome: user?.cognome || '',
+          email: user?.email || '',
           data: p.data,
           ore: p.ferie,
           validate: p.ferie_validate || false,
@@ -83,36 +97,145 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     }
   }
 
-  // Valida o invalida una ferie
-  async function handleToggleValidazione(presenzaId: string, currentState: boolean) {
-    setValidating(presenzaId);
+  // Valida una ferie (approva)
+  async function handleApprova(ferie: FerieUtente) {
+    if (ferie.validate) return; // Già validata
+
+    setValidating(ferie.presenzaId);
     try {
       // Cast as any per bypassare i tipi Supabase che non includono ferie_validate
       const { error } = await (supabase as any)
         .from('presenze')
-        .update({ ferie_validate: !currentState })
-        .eq('id', presenzaId);
+        .update({ ferie_validate: true })
+        .eq('id', ferie.presenzaId);
 
       if (error) throw error;
 
       // Aggiorna lo stato locale
       setFerieUtenti(prev =>
         prev.map(f =>
-          f.presenzaId === presenzaId
-            ? { ...f, validate: !currentState }
+          f.presenzaId === ferie.presenzaId
+            ? { ...f, validate: true }
             : f
         )
       );
 
-      showToast(
-        !currentState ? 'Ferie validate con successo' : 'Validazione ferie rimossa',
-        'success'
-      );
+      // Invia email di notifica
+      try {
+        await fetch('/api/ferie/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'approved',
+            nome: ferie.nome,
+            cognome: ferie.cognome,
+            email: ferie.email,
+            giorniFerie: [{ data: ferie.data, ore: ferie.ore }],
+          }),
+        });
+      } catch (emailError) {
+        console.error('Errore invio email approvazione:', emailError);
+      }
+
+      showToast('Ferie approvate con successo', 'success');
     } catch (error) {
-      console.error('Errore validazione ferie:', error);
-      showToast('Errore durante la validazione', 'error');
+      console.error('Errore approvazione ferie:', error);
+      showToast('Errore durante l\'approvazione', 'error');
     } finally {
       setValidating(null);
+    }
+  }
+
+  // Respingi una ferie
+  async function handleRespingi(ferie: FerieUtente) {
+    setValidating(ferie.presenzaId);
+    try {
+      // Imposta ferie_validate a false (respinta)
+      const { error } = await (supabase as any)
+        .from('presenze')
+        .update({ ferie_validate: false })
+        .eq('id', ferie.presenzaId);
+
+      if (error) throw error;
+
+      // Aggiorna lo stato locale
+      setFerieUtenti(prev =>
+        prev.map(f =>
+          f.presenzaId === ferie.presenzaId
+            ? { ...f, validate: false }
+            : f
+        )
+      );
+
+      // Invia email di notifica
+      try {
+        await fetch('/api/ferie/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'rejected',
+            nome: ferie.nome,
+            cognome: ferie.cognome,
+            email: ferie.email,
+            giorniFerie: [{ data: ferie.data, ore: ferie.ore }],
+          }),
+        });
+      } catch (emailError) {
+        console.error('Errore invio email respinta:', emailError);
+      }
+
+      showToast('Ferie respinte', 'success');
+    } catch (error) {
+      console.error('Errore respinta ferie:', error);
+      showToast('Errore durante la respinta', 'error');
+    } finally {
+      setValidating(null);
+    }
+  }
+
+  // Richiedi validazione ferie (utente)
+  async function handleRichiestaValidazione() {
+    if (!currentUser) {
+      showToast('Errore: utente non trovato', 'error');
+      return;
+    }
+
+    // Trova le ferie dell'utente corrente non validate
+    const ferieDaValidare = ferieUtenti.filter(
+      f => f.userId === currentUser.id && !f.validate
+    );
+
+    if (ferieDaValidare.length === 0) {
+      showToast('Non hai ferie da validare questo mese', 'info');
+      return;
+    }
+
+    setSendingRequest(true);
+    try {
+      const response = await fetch('/api/ferie/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'validation_request',
+          nome: currentUser.nome,
+          cognome: currentUser.cognome,
+          email: currentUser.email,
+          giorniFerie: ferieDaValidare.map(f => ({ data: f.data, ore: f.ore })),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        showToast('Richiesta di validazione inviata con successo', 'success');
+      } else {
+        showToast('Errore nell\'invio della richiesta', 'error');
+      }
+    } catch (error) {
+      console.error('Errore richiesta validazione:', error);
+      showToast('Errore nell\'invio della richiesta', 'error');
+    } finally {
+      setSendingRequest(false);
     }
   }
 
@@ -205,9 +328,87 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     return classes;
   }
 
+  // Renderizza singola ferie con pulsanti validazione
+  function renderFerieItem(f: FerieUtente, inModal: boolean = false) {
+    const isProcessing = validating === f.presenzaId;
+
+    return (
+      <div
+        key={f.presenzaId}
+        className={`text-xs px-1 py-0.5 rounded flex items-center justify-between gap-1 ${
+          f.validate
+            ? 'bg-green-200 text-green-900'
+            : 'bg-amber-200 text-amber-900'
+        } ${inModal ? 'py-2 px-3 text-sm' : 'truncate'}`}
+      >
+        <span className={inModal ? '' : 'truncate'}>
+          {f.cognome} {f.nome[0]}. {f.ore}h
+        </span>
+        {isAdmin && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {isProcessing ? (
+              <LoadingSpinner className="h-3 w-3" />
+            ) : f.validate ? (
+              <>
+                {/* Ferie validata: mostra spunta verde e X per annullare */}
+                <span className="text-green-600" title="Validata">
+                  <Check className="h-3 w-3" />
+                </span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRespingi(f);
+                  }}
+                  className="p-0.5 rounded hover:bg-green-300 text-green-700"
+                  title="Rimuovi validazione"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            ) : (
+              <>
+                {/* Ferie da validare: cerchio per approvare, X per respingere */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleApprova(f);
+                  }}
+                  className="p-0.5 rounded hover:bg-amber-300 text-amber-700"
+                  title="Approva ferie"
+                >
+                  <Circle className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRespingi(f);
+                  }}
+                  className="p-0.5 rounded hover:bg-red-200 text-red-600"
+                  title="Respingi ferie"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        {!isAdmin && f.validate && (
+          <span className="text-green-600 flex-shrink-0" title="Validata">
+            <Check className="h-3 w-3" />
+          </span>
+        )}
+      </div>
+    );
+  }
+
   const isCurrentMonth = anno === new Date().getFullYear() && mese === new Date().getMonth() + 1;
   const calendarDays = getCalendarDays();
   const weekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+
+  // Calcola se ci sono ferie da validare per l'utente corrente
+  const ferieDaValidareUtente = currentUser
+    ? ferieUtenti.filter(f => f.userId === currentUser.id && !f.validate)
+    : [];
 
   if (loading) {
     return (
@@ -245,23 +446,41 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           </button>
         </div>
 
-        {/* Legenda */}
-        <div className="flex items-center gap-4 text-sm flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-100 border border-red-300 rounded" />
-            <span>Festivo</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded" />
-            <span>Semifestivo</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-amber-100 border border-amber-300 rounded" />
-            <span>Ferie (da validare)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
-            <span>Ferie (validate)</span>
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* Tasto richiesta validazione */}
+          {ferieDaValidareUtente.length > 0 && (
+            <button
+              onClick={handleRichiestaValidazione}
+              disabled={sendingRequest}
+              className="btn-primary flex items-center gap-2"
+            >
+              {sendingRequest ? (
+                <LoadingSpinner className="h-4 w-4" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Richiedi Validazione ({ferieDaValidareUtente.length})
+            </button>
+          )}
+
+          {/* Legenda */}
+          <div className="flex items-center gap-4 text-sm flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-red-100 border border-red-300 rounded" />
+              <span>Festivo</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded" />
+              <span>Semifestivo</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-amber-100 border border-amber-300 rounded" />
+              <span>Ferie (da validare)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
+              <span>Ferie (validate)</span>
+            </div>
           </div>
         </div>
       </div>
@@ -313,47 +532,14 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
                 {/* Ferie utenti */}
                 {ferie.length > 0 && (
                   <div className="space-y-1">
-                    {ferie.slice(0, 3).map((f) => (
-                      <div
-                        key={f.presenzaId}
-                        className={`text-xs px-1 py-0.5 rounded truncate flex items-center justify-between gap-1 ${
-                          f.validate
-                            ? 'bg-green-200 text-green-900'
-                            : 'bg-amber-200 text-amber-900'
-                        }`}
-                      >
-                        <span className="truncate">
-                          {f.cognome} {f.nome[0]}. {f.ore}h
-                        </span>
-                        {isAdmin && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleValidazione(f.presenzaId, f.validate);
-                            }}
-                            disabled={validating === f.presenzaId}
-                            className={`flex-shrink-0 p-0.5 rounded ${
-                              f.validate
-                                ? 'hover:bg-green-300 text-green-700'
-                                : 'hover:bg-amber-300 text-amber-700'
-                            }`}
-                            title={f.validate ? 'Rimuovi validazione' : 'Valida ferie'}
-                          >
-                            {validating === f.presenzaId ? (
-                              <LoadingSpinner className="h-3 w-3" />
-                            ) : f.validate ? (
-                              <X className="h-3 w-3" />
-                            ) : (
-                              <Check className="h-3 w-3" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                    {ferie.slice(0, 3).map((f) => renderFerieItem(f))}
                     {ferie.length > 3 && (
-                      <div className="text-xs text-gray-600">
+                      <button
+                        onClick={() => setModalGiorno(data)}
+                        className="text-xs text-gray-600 hover:text-primary hover:underline cursor-pointer"
+                      >
                         +{ferie.length - 3} altri
-                      </div>
+                      </button>
                     )}
                   </div>
                 )}
@@ -362,6 +548,25 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           })}
         </div>
       </div>
+
+      {/* Modale ferie giorno */}
+      {modalGiorno && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setModalGiorno(null)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Ferie del {new Date(modalGiorno).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </h3>
+              <button onClick={() => setModalGiorno(null)} className="text-gray-500 hover:text-gray-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh] space-y-2">
+              {getFerieGiorno(modalGiorno).map((f) => renderFerieItem(f, true))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Riepilogo mensile */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
