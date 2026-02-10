@@ -103,13 +103,18 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
 
     setValidating(ferie.presenzaId);
     try {
-      // Cast as any per bypassare i tipi Supabase che non includono ferie_validate
-      const { error } = await (supabase as any)
-        .from('presenze')
-        .update({ ferie_validate: true })
-        .eq('id', ferie.presenzaId);
+      // Usa API endpoint con admin client per bypassare RLS
+      const response = await fetch('/api/ferie', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          presenzaId: ferie.presenzaId,
+          action: 'approve',
+        }),
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
 
       // Aggiorna lo stato locale
       setFerieUtenti(prev =>
@@ -146,25 +151,27 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     }
   }
 
-  // Respingi una ferie
+  // Respingi una ferie (cancella le ferie impostando ferie=0)
   async function handleRespingi(ferie: FerieUtente) {
     setValidating(ferie.presenzaId);
     try {
-      // Imposta ferie_validate a false (respinta)
-      const { error } = await (supabase as any)
-        .from('presenze')
-        .update({ ferie_validate: false })
-        .eq('id', ferie.presenzaId);
+      // Usa API endpoint con admin client per bypassare RLS
+      // Imposta ferie=0 per rimuovere le ferie dal calendario
+      const response = await fetch('/api/ferie', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          presenzaId: ferie.presenzaId,
+          action: 'reject',
+        }),
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error);
 
-      // Aggiorna lo stato locale
+      // Rimuovi dalla lista locale (ferie=0 quindi non appare più)
       setFerieUtenti(prev =>
-        prev.map(f =>
-          f.presenzaId === ferie.presenzaId
-            ? { ...f, validate: false }
-            : f
-        )
+        prev.filter(f => f.presenzaId !== ferie.presenzaId)
       );
 
       // Invia email di notifica
@@ -184,7 +191,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
         console.error('Errore invio email respinta:', emailError);
       }
 
-      showToast('Ferie respinte', 'success');
+      showToast('Ferie respinte e rimosse', 'success');
     } catch (error) {
       console.error('Errore respinta ferie:', error);
       showToast('Errore durante la respinta', 'error');

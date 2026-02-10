@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     // Carica utenti per i nomi
     const { data: usersData, error: usersError } = await supabase
       .from('users')
-      .select('id, nome, cognome')
+      .select('id, nome, cognome, email')
       .order('cognome', { ascending: true });
 
     if (usersError) {
@@ -45,6 +45,55 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Errore API ferie:', error);
+    return NextResponse.json({ error: 'Errore interno' }, { status: 500 });
+  }
+}
+
+// PATCH /api/ferie - Approva o respingi ferie
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { presenzaId, action } = body;
+
+    if (!presenzaId || !action) {
+      return NextResponse.json({ error: 'Parametri mancanti' }, { status: 400 });
+    }
+
+    const supabase = createAdminClient();
+
+    if (action === 'approve') {
+      // Approva: imposta ferie_validate a true
+      // Cast as any per bypassare tipi Supabase che non includono ferie_validate
+      const { error } = await (supabase as any)
+        .from('presenze')
+        .update({ ferie_validate: true })
+        .eq('id', presenzaId);
+
+      if (error) {
+        console.error('Errore approvazione ferie:', error);
+        return NextResponse.json({ error: 'Errore approvazione ferie' }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, action: 'approved' });
+    } else if (action === 'reject') {
+      // Respingi: imposta ferie a 0 per rimuovere dal calendario
+      // Cast as any per bypassare tipi Supabase che non includono ferie_validate
+      const { error } = await (supabase as any)
+        .from('presenze')
+        .update({ ferie: 0, ferie_validate: false })
+        .eq('id', presenzaId);
+
+      if (error) {
+        console.error('Errore respinta ferie:', error);
+        return NextResponse.json({ error: 'Errore respinta ferie' }, { status: 500 });
+      }
+
+      return NextResponse.json({ success: true, action: 'rejected' });
+    } else {
+      return NextResponse.json({ error: 'Azione non valida' }, { status: 400 });
+    }
+  } catch (error) {
+    console.error('Errore API ferie PATCH:', error);
     return NextResponse.json({ error: 'Errore interno' }, { status: 500 });
   }
 }
