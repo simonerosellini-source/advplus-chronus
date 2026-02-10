@@ -52,32 +52,16 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
 
       if (festiviError) throw festiviError;
 
-      // Carica presenze con ferie del mese (tutti gli utenti, anche per dipendente)
-      const primoGiorno = `${anno}-${String(mese).padStart(2, '0')}-01`;
-      const ultimoGiorno = new Date(anno, mese, 0);
-      const ultimoGiornoStr = `${anno}-${String(mese).padStart(2, '0')}-${ultimoGiorno.getDate()}`;
-
-      const { data: presenzeData, error: presenzeError } = await supabase
-        .from('presenze')
-        .select('*')
-        .gte('data', primoGiorno)
-        .lte('data', ultimoGiornoStr)
-        .gt('ferie', 0); // Solo presenze con ferie
-
-      if (presenzeError) throw presenzeError;
-
-      // Carica sempre gli utenti per mostrare i nomi (sia admin che dipendente)
-      const { data: userData, error: usersError } = await supabase
-        .from('users')
-        .select('*')
-        .order('cognome', { ascending: true });
-
-      if (usersError) throw usersError;
-      const usersData: User[] = userData || [];
+      // Usa API endpoint per caricare ferie (bypassa RLS per dipendenti)
+      const response = await fetch(`/api/ferie?anno=${anno}&mese=${mese}`);
+      if (!response.ok) {
+        throw new Error('Errore caricamento ferie da API');
+      }
+      const { presenze: presenzeData, users: usersData } = await response.json();
 
       // Mappa le ferie con i nomi utente e stato validazione
       const ferieList: FerieUtente[] = (presenzeData || []).map((p: Presenza) => {
-        const user = usersData.find(u => u.id === p.user_id);
+        const user = usersData.find((u: User) => u.id === p.user_id);
         return {
           presenzaId: p.id,
           userId: p.user_id,
@@ -91,7 +75,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
 
       setFestivi(festiviData || []);
       setFerieUtenti(ferieList);
-      setUsers(usersData);
+      setUsers(usersData || []);
     } catch (error) {
       console.error('Errore caricamento dati calendario:', error);
     } finally {
