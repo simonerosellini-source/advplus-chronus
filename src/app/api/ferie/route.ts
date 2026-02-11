@@ -15,13 +15,13 @@ export async function GET(request: Request) {
     const ultimoGiorno = new Date(anno, mese, 0);
     const ultimoGiornoStr = `${anno}-${String(mese).padStart(2, '0')}-${ultimoGiorno.getDate()}`;
 
-    // Carica presenze con ferie del mese (tutti gli utenti)
+    // Carica presenze con ferie O permessi del mese (tutti gli utenti)
     const { data: presenzeData, error: presenzeError } = await supabase
       .from('presenze')
       .select('*')
       .gte('data', primoGiorno)
       .lte('data', ultimoGiornoStr)
-      .gt('ferie', 0);
+      .or('ferie.gt.0,permessi.gt.0');
 
     if (presenzeError) {
       console.error('Errore caricamento ferie:', presenzeError);
@@ -49,11 +49,11 @@ export async function GET(request: Request) {
   }
 }
 
-// PATCH /api/ferie - Approva o respingi ferie
+// PATCH /api/ferie - Approva o respingi ferie/permessi
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { presenzaId, action } = body;
+    const { presenzaId, action, tipo } = body; // tipo: 'ferie' | 'permessi'
 
     if (!presenzaId || !action) {
       return NextResponse.json({ error: 'Parametri mancanti' }, { status: 400 });
@@ -70,22 +70,25 @@ export async function PATCH(request: Request) {
         .eq('id', presenzaId);
 
       if (error) {
-        console.error('Errore approvazione ferie:', error);
-        return NextResponse.json({ error: 'Errore approvazione ferie' }, { status: 500 });
+        console.error('Errore approvazione:', error);
+        return NextResponse.json({ error: 'Errore approvazione' }, { status: 500 });
       }
 
       return NextResponse.json({ success: true, action: 'approved' });
     } else if (action === 'reject') {
-      // Respingi: imposta ferie a 0 per rimuovere dal calendario
-      // Cast as any per bypassare tipi Supabase che non includono ferie_validate
+      // Respingi: imposta ferie o permessi a 0 in base al tipo
+      const updateData = tipo === 'permessi'
+        ? { permessi: 0, ferie_validate: false }
+        : { ferie: 0, ferie_validate: false };
+
       const { error } = await (supabase as any)
         .from('presenze')
-        .update({ ferie: 0, ferie_validate: false })
+        .update(updateData)
         .eq('id', presenzaId);
 
       if (error) {
-        console.error('Errore respinta ferie:', error);
-        return NextResponse.json({ error: 'Errore respinta ferie' }, { status: 500 });
+        console.error('Errore respinta:', error);
+        return NextResponse.json({ error: 'Errore respinta' }, { status: 500 });
       }
 
       return NextResponse.json({ success: true, action: 'rejected' });

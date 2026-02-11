@@ -16,6 +16,7 @@ interface CalendarioFerieViewProps {
 
 interface FerieUtente {
   presenzaId: string;
+  odataPresenza: string; // ID originale della presenza per lookup
   userId: string;
   nome: string;
   cognome: string;
@@ -23,6 +24,7 @@ interface FerieUtente {
   data: string;
   ore: number;
   validate: boolean;
+  tipo: 'ferie' | 'permessi';
 }
 
 interface PendingItem {
@@ -97,19 +99,40 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
       }
       const { presenze: presenzeData, users: usersData } = await response.json();
 
-      // Mappa le ferie con i nomi utente e stato validazione
-      const ferieList: FerieUtente[] = (presenzeData || []).map((p: Presenza) => {
+      // Mappa le ferie E i permessi con i nomi utente e stato validazione
+      const ferieList: FerieUtente[] = [];
+      (presenzeData || []).forEach((p: Presenza) => {
         const user = usersData.find((u: User) => u.id === p.user_id);
-        return {
-          presenzaId: p.id,
-          userId: p.user_id,
-          nome: user?.nome || '',
-          cognome: user?.cognome || '',
-          email: user?.email || '',
-          data: p.data,
-          ore: p.ferie,
-          validate: p.ferie_validate || false,
-        };
+        // Aggiungi ferie se > 0
+        if (p.ferie > 0) {
+          ferieList.push({
+            presenzaId: `${p.id}-ferie`,
+            odataPresenza: p.id,
+            userId: p.user_id,
+            nome: user?.nome || '',
+            cognome: user?.cognome || '',
+            email: user?.email || '',
+            data: p.data,
+            ore: p.ferie,
+            validate: p.ferie_validate || false,
+            tipo: 'ferie',
+          });
+        }
+        // Aggiungi permessi se > 0
+        if (p.permessi > 0) {
+          ferieList.push({
+            presenzaId: `${p.id}-permessi`,
+            odataPresenza: p.id,
+            userId: p.user_id,
+            nome: user?.nome || '',
+            cognome: user?.cognome || '',
+            email: user?.email || '',
+            data: p.data,
+            ore: p.permessi,
+            validate: p.ferie_validate || false,
+            tipo: 'permessi',
+          });
+        }
       });
 
       setFestivi(festiviData || []);
@@ -122,81 +145,83 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     }
   }
 
-  // Valida una ferie (approva)
-  async function handleApprova(ferie: FerieUtente) {
-    if (ferie.validate) return; // Già validata
+  // Valida una ferie/permesso (approva)
+  async function handleApprova(item: FerieUtente) {
+    if (item.validate) return; // Già validata
 
-    setValidating(ferie.presenzaId);
+    setValidating(item.presenzaId);
     try {
       // Usa API endpoint con admin client per bypassare RLS
       const response = await fetch('/api/ferie', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          presenzaId: ferie.presenzaId,
+          presenzaId: item.odataPresenza,
           action: 'approve',
+          tipo: item.tipo,
         }),
       });
 
       const result = await response.json();
       if (!result.success) throw new Error(result.error);
 
-      // Aggiorna lo stato locale
+      // Aggiorna lo stato locale - approva tutti gli item con stessa presenza
       setFerieUtenti(prev =>
         prev.map(f =>
-          f.presenzaId === ferie.presenzaId
+          f.odataPresenza === item.odataPresenza
             ? { ...f, validate: true }
             : f
         )
       );
 
       // Invia email di notifica
+      const tipoLabel = item.tipo === 'permessi' ? 'Permesso approvato' : 'Ferie approvate';
       try {
         await fetch('/api/ferie/email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'approved',
-            nome: ferie.nome,
-            cognome: ferie.cognome,
-            email: ferie.email,
-            giorniFerie: [{ data: ferie.data, ore: ferie.ore }],
+            nome: item.nome,
+            cognome: item.cognome,
+            email: item.email,
+            giorniFerie: [{ data: item.data, ore: item.ore }],
           }),
         });
       } catch (emailError) {
         console.error('Errore invio email approvazione:', emailError);
       }
 
-      showToast('Ferie approvate con successo', 'success');
+      showToast(`${tipoLabel} con successo`, 'success');
     } catch (error) {
-      console.error('Errore approvazione ferie:', error);
+      console.error('Errore approvazione:', error);
       showToast('Errore durante l\'approvazione', 'error');
     } finally {
       setValidating(null);
     }
   }
 
-  // Respingi una ferie (cancella le ferie impostando ferie=0)
-  async function handleRespingi(ferie: FerieUtente) {
-    setValidating(ferie.presenzaId);
+  // Respingi una ferie/permesso (cancella impostando a 0)
+  async function handleRespingi(item: FerieUtente) {
+    setValidating(item.presenzaId);
     try {
       // Usa API endpoint con admin client per bypassare RLS
-      // Imposta ferie=0 per rimuovere le ferie dal calendario
       const response = await fetch('/api/ferie', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          presenzaId: ferie.presenzaId,
+          presenzaId: item.odataPresenza,
           action: 'reject',
+          tipo: item.tipo,
         }),
       });
 
       const result = await response.json();
       if (!result.success) throw new Error(result.error);
 
-      // Rimuovi dalla lista locale (ferie=0 quindi non appare più)
+      // Rimuovi dalla lista locale solo questo item (ferie o permesso)
       setFerieUtenti(prev =>
-        prev.filter(f => f.presenzaId !== ferie.presenzaId)
+        prev.filter(f => f.presenzaId !== item.presenzaId)
       );
 
       // Invia email di notifica
@@ -206,17 +231,18 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'rejected',
-            nome: ferie.nome,
-            cognome: ferie.cognome,
-            email: ferie.email,
-            giorniFerie: [{ data: ferie.data, ore: ferie.ore }],
+            nome: item.nome,
+            cognome: item.cognome,
+            email: item.email,
+            giorniFerie: [{ data: item.data, ore: item.ore }],
           }),
         });
       } catch (emailError) {
         console.error('Errore invio email respinta:', emailError);
       }
 
-      showToast('Ferie respinte e rimosse', 'success');
+      const tipoLabel = item.tipo === 'permessi' ? 'Permesso respinto' : 'Ferie respinte';
+      showToast(`${tipoLabel} e rimosso`, 'success');
     } catch (error) {
       console.error('Errore respinta ferie:', error);
       showToast('Errore durante la respinta', 'error');
@@ -367,21 +393,34 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     return classes;
   }
 
-  // Renderizza singola ferie con pulsanti validazione
+  // Renderizza singola ferie/permesso con pulsanti validazione
   function renderFerieItem(f: FerieUtente, inModal: boolean = false) {
     const isProcessing = validating === f.presenzaId;
+    const isPermesso = f.tipo === 'permessi';
+
+    // Colori: validato = verde, permessi = blu, ferie = ambra
+    const getColorClasses = () => {
+      if (f.validate) return 'bg-green-200 text-green-900';
+      return isPermesso ? 'bg-blue-200 text-blue-900' : 'bg-amber-200 text-amber-900';
+    };
+
+    const getHoverClasses = () => {
+      if (f.validate) return 'hover:bg-green-300';
+      return isPermesso ? 'hover:bg-blue-300' : 'hover:bg-amber-300';
+    };
+
+    const getButtonClasses = () => {
+      if (f.validate) return 'text-green-700';
+      return isPermesso ? 'text-blue-700' : 'text-amber-700';
+    };
 
     return (
       <div
         key={f.presenzaId}
-        className={`text-xs px-1 py-0.5 rounded flex items-center justify-between gap-1 ${
-          f.validate
-            ? 'bg-green-200 text-green-900'
-            : 'bg-amber-200 text-amber-900'
-        } ${inModal ? 'py-2 px-3 text-sm' : 'truncate'}`}
+        className={`text-xs px-1 py-0.5 rounded flex items-center justify-between gap-1 ${getColorClasses()} ${inModal ? 'py-2 px-3 text-sm' : 'truncate'}`}
       >
         <span className={inModal ? '' : 'truncate'}>
-          {f.cognome} {f.nome[0]}. {f.ore}h
+          {isPermesso ? 'P: ' : ''}{f.cognome} {f.nome[0]}. {f.ore}h
         </span>
         {isAdmin && (
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -406,14 +445,14 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
               </>
             ) : (
               <>
-                {/* Ferie da validare: cerchio per approvare, X per respingere */}
+                {/* Ferie/Permesso da validare: cerchio per approvare, X per respingere */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleApprova(f);
                   }}
-                  className="p-0.5 rounded hover:bg-amber-300 text-amber-700"
-                  title="Approva ferie"
+                  className={`p-0.5 rounded ${getHoverClasses()} ${getButtonClasses()}`}
+                  title={isPermesso ? 'Approva permesso' : 'Approva ferie'}
                 >
                   <Circle className="h-3 w-3" />
                 </button>
@@ -423,7 +462,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
                     handleRespingi(f);
                   }}
                   className="p-0.5 rounded hover:bg-red-200 text-red-600"
-                  title="Respingi ferie"
+                  title={isPermesso ? 'Respingi permesso' : 'Respingi ferie'}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -458,33 +497,8 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   }
 
   return (
-    <div className="space-y-4 relative">
-      {/* Tasto richiesta validazione - posizionato in alto a destra */}
-      {totalePending > 0 && (
-        <div className="absolute top-0 right-0 z-10">
-          <button
-            onClick={handleRichiestaValidazione}
-            disabled={sendingRequest}
-            className="btn-primary flex items-center gap-2 shadow-lg"
-          >
-            {sendingRequest ? (
-              <LoadingSpinner className="h-4 w-4" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            Richiedi Validazione ({totalePending})
-          </button>
-          {(totalePendingFerie > 0 || totalePendingPermessi > 0) && (
-            <div className="text-xs text-gray-500 mt-1 text-right">
-              {totalePendingFerie > 0 && <span>{totalePendingFerie} ferie</span>}
-              {totalePendingFerie > 0 && totalePendingPermessi > 0 && <span> + </span>}
-              {totalePendingPermessi > 0 && <span>{totalePendingPermessi} permessi</span>}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Header con navigazione */}
+    <div className="space-y-4">
+      {/* Header con navigazione e tasto validazione */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <button onClick={prevMonth} className="btn-outline p-2" title="Mese precedente">
@@ -510,24 +524,53 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           </button>
         </div>
 
-        {/* Legenda */}
-        <div className="flex items-center gap-4 text-sm flex-wrap mr-48">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-100 border border-red-300 rounded" />
-            <span>Festivo</span>
+        {/* Tasto richiesta validazione */}
+        {totalePending > 0 && (
+          <div className="flex flex-col items-end">
+            <button
+              onClick={handleRichiestaValidazione}
+              disabled={sendingRequest}
+              className="btn-primary flex items-center gap-2 shadow-lg"
+            >
+              {sendingRequest ? (
+                <LoadingSpinner className="h-4 w-4" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Richiedi Validazione ({totalePending})
+            </button>
+            {(totalePendingFerie > 0 || totalePendingPermessi > 0) && (
+              <div className="text-xs text-gray-500 mt-1 text-right">
+                {totalePendingFerie > 0 && <span>{totalePendingFerie} ferie</span>}
+                {totalePendingFerie > 0 && totalePendingPermessi > 0 && <span> + </span>}
+                {totalePendingPermessi > 0 && <span>{totalePendingPermessi} permessi</span>}
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded" />
-            <span>Semifestivo</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-amber-100 border border-amber-300 rounded" />
-            <span>Ferie (da validare)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
-            <span>Ferie (validate)</span>
-          </div>
+        )}
+      </div>
+
+      {/* Legenda */}
+      <div className="flex items-center gap-4 text-sm flex-wrap">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-red-100 border border-red-300 rounded" />
+          <span>Festivo</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded" />
+          <span>Semifestivo</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-amber-200 border border-amber-400 rounded" />
+          <span>Ferie</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-blue-200 border border-blue-400 rounded" />
+          <span>Permessi</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 bg-green-200 border border-green-400 rounded" />
+          <span>Validato</span>
         </div>
       </div>
 
@@ -595,13 +638,13 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
         </div>
       </div>
 
-      {/* Modale ferie giorno */}
+      {/* Modale ferie/permessi giorno */}
       {modalGiorno && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setModalGiorno(null)}>
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">
-                Ferie del {new Date(modalGiorno).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                Ferie e Permessi del {new Date(modalGiorno).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
               </h3>
               <button onClick={() => setModalGiorno(null)} className="text-gray-500 hover:text-gray-700">
                 <X className="h-5 w-5" />
@@ -662,28 +705,39 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           </div>
         </div>
 
-        {/* Ferie del mese */}
+        {/* Ferie e Permessi del mese */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
           <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <div className="w-3 h-3 bg-amber-500 rounded" />
-            Ferie del mese
+            <div className="flex gap-1">
+              <div className="w-3 h-3 bg-amber-500 rounded" />
+              <div className="w-3 h-3 bg-blue-500 rounded" />
+            </div>
+            Ferie e Permessi del mese
           </h3>
           <div className="space-y-2 max-h-[200px] overflow-y-auto">
-            {/* Mostra ferie raggruppate per utente (sia admin che dipendente) */}
+            {/* Mostra ferie e permessi raggruppati per utente */}
             {users
               .filter(u => ferieUtenti.some(f => f.userId === u.id))
               .map(u => {
-                const ferieUser = ferieUtenti.filter(f => f.userId === u.id);
-                const totaleOre = ferieUser.reduce((acc, f) => acc + f.ore, 0);
-                const tutteValidate = ferieUser.every(f => f.validate);
-                const nessunaValidata = ferieUser.every(f => !f.validate);
+                const itemsUser = ferieUtenti.filter(f => f.userId === u.id);
+                const ferieUser = itemsUser.filter(f => f.tipo === 'ferie');
+                const permessiUser = itemsUser.filter(f => f.tipo === 'permessi');
+                const tutteValidate = itemsUser.every(f => f.validate);
+                const nessunaValidata = itemsUser.every(f => !f.validate);
                 return (
                   <div key={u.id} className="text-sm flex justify-between items-center">
                     <span className="text-gray-600">{u.cognome} {u.nome[0]}.</span>
                     <div className="flex items-center gap-2">
-                      <span className={`font-medium ${tutteValidate ? 'text-green-700' : 'text-amber-700'}`}>
-                        {totaleOre}h ({ferieUser.length}gg)
-                      </span>
+                      {ferieUser.length > 0 && (
+                        <span className="text-amber-700 font-medium">
+                          F: {ferieUser.reduce((acc, f) => acc + f.ore, 0)}h
+                        </span>
+                      )}
+                      {permessiUser.length > 0 && (
+                        <span className="text-blue-700 font-medium">
+                          P: {permessiUser.reduce((acc, f) => acc + f.ore, 0)}h
+                        </span>
+                      )}
                       {tutteValidate && (
                         <Check className="h-4 w-4 text-green-600" />
                       )}
@@ -695,26 +749,32 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
                 );
               })}
             {ferieUtenti.length === 0 && (
-              <p className="text-sm text-gray-500">Nessuna ferie questo mese</p>
+              <p className="text-sm text-gray-500">Nessuna ferie o permesso questo mese</p>
             )}
           </div>
           {ferieUtenti.length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-200 space-y-1">
               <div className="text-sm font-semibold flex justify-between">
-                <span>Totale ore ferie:</span>
-                <span className="text-gray-700">
-                  {ferieUtenti.reduce((acc, f) => acc + f.ore, 0)}h
+                <span>Totale Ferie:</span>
+                <span className="text-amber-700">
+                  {ferieUtenti.filter(f => f.tipo === 'ferie').reduce((acc, f) => acc + f.ore, 0)}h
                 </span>
               </div>
-              <div className="text-xs flex justify-between text-gray-500">
-                <span>Validate:</span>
+              <div className="text-sm font-semibold flex justify-between">
+                <span>Totale Permessi:</span>
+                <span className="text-blue-700">
+                  {ferieUtenti.filter(f => f.tipo === 'permessi').reduce((acc, f) => acc + f.ore, 0)}h
+                </span>
+              </div>
+              <div className="text-xs flex justify-between text-gray-500 pt-1">
+                <span>Validati:</span>
                 <span className="text-green-600">
                   {ferieUtenti.filter(f => f.validate).reduce((acc, f) => acc + f.ore, 0)}h
                 </span>
               </div>
               <div className="text-xs flex justify-between text-gray-500">
                 <span>Da validare:</span>
-                <span className="text-amber-600">
+                <span className="text-gray-600">
                   {ferieUtenti.filter(f => !f.validate).reduce((acc, f) => acc + f.ore, 0)}h
                 </span>
               </div>
