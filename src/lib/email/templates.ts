@@ -540,40 +540,51 @@ Il Team di Advisory+
 }
 
 /**
- * Template email per richiesta validazione ferie
+ * Template email per richiesta validazione ferie e permessi
  */
 export function createVacationValidationRequestTemplate(params: {
   nome: string;
   cognome: string;
   email: string;
-  giorniFerie: Array<{ data: string; ore: number }>;
+  giorniFerie: Array<{ data: string; ore: number; tipo: 'ferie' | 'permessi' }>;
   logoCid?: string;
 }) {
   const { nome, cognome, email, giorniFerie, logoCid } = params;
 
-  const totaleOre = giorniFerie.reduce((acc, g) => acc + g.ore, 0);
+  const ferie = giorniFerie.filter(g => g.tipo === 'ferie');
+  const permessi = giorniFerie.filter(g => g.tipo === 'permessi');
+  const totaleOreFerie = ferie.reduce((acc, g) => acc + g.ore, 0);
+  const totaleOrePermessi = permessi.reduce((acc, g) => acc + g.ore, 0);
 
-  const listaGiorni = giorniFerie
-    .map(g => `${new Date(g.data).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} - ${g.ore}h`)
-    .join('<br>');
+  const formatGiorno = (g: { data: string; ore: number; tipo: string }) =>
+    `${new Date(g.data).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} - ${g.ore}h`;
 
-  const listaGiorniText = giorniFerie
-    .map(g => `- ${new Date(g.data).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} - ${g.ore}h`)
-    .join('\n');
+  const listaFerieHtml = ferie.map(formatGiorno).join('<br>');
+  const listaPermessiHtml = permessi.map(formatGiorno).join('<br>');
+  const listaFerieText = ferie.map(g => `- ${formatGiorno(g)}`).join('\n');
+  const listaPermessiText = permessi.map(g => `- ${formatGiorno(g)}`).join('\n');
 
   const adminUrl = process.env.NEXT_PUBLIC_APP_URL
     ? `${process.env.NEXT_PUBLIC_APP_URL}/admin`
     : 'https://presency.vercel.app/admin';
 
+  const hasFerie = ferie.length > 0;
+  const hasPermessi = permessi.length > 0;
+  const titolo = hasFerie && hasPermessi
+    ? 'Richiesta Validazione Ferie e Permessi'
+    : hasFerie
+    ? 'Richiesta Validazione Ferie'
+    : 'Richiesta Validazione Permessi';
+
   return {
-    subject: `Richiesta Validazione Ferie - ${nome} ${cognome}`,
+    subject: `${titolo} - ${nome} ${cognome}`,
     html: `
 <!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Richiesta Validazione Ferie</title>
+  <title>${titolo}</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f4;">
   <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -590,7 +601,7 @@ export function createVacationValidationRequestTemplate(params: {
           <tr>
             <td style="padding: 40px 40px 20px; text-align: center; background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); ${logoCid ? '' : 'border-radius: 8px 8px 0 0;'}">
               <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">
-                📋 Richiesta Validazione Ferie
+                📋 ${titolo}
               </h1>
             </td>
           </tr>
@@ -598,19 +609,34 @@ export function createVacationValidationRequestTemplate(params: {
           <tr>
             <td style="padding: 40px;">
               <p style="margin: 0 0 20px; color: #374151; font-size: 16px; line-height: 1.6;">
-                L'utente <strong>${nome} ${cognome}</strong> (${email}) richiede la validazione delle seguenti ferie:
+                L'utente <strong>${nome} ${cognome}</strong> (${email}) richiede la validazione di:
               </p>
 
-              <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; margin-bottom: 30px;">
+              ${hasFerie ? `
+              <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; margin-bottom: 20px;">
                 <tr>
                   <td style="padding: 24px;">
-                    <p style="margin: 0 0 10px; color: #92400e; font-size: 14px; font-weight: 600;">Giorni da validare (${giorniFerie.length} giorni - ${totaleOre}h totali):</p>
+                    <p style="margin: 0 0 10px; color: #92400e; font-size: 14px; font-weight: 600;">🏖️ FERIE (${ferie.length} giorni - ${totaleOreFerie}h):</p>
                     <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.8;">
-                      ${listaGiorni}
+                      ${listaFerieHtml}
                     </p>
                   </td>
                 </tr>
               </table>
+              ` : ''}
+
+              ${hasPermessi ? `
+              <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #dbeafe; border: 2px solid #3b82f6; border-radius: 8px; margin-bottom: 20px;">
+                <tr>
+                  <td style="padding: 24px;">
+                    <p style="margin: 0 0 10px; color: #1e40af; font-size: 14px; font-weight: 600;">📝 PERMESSI (${permessi.length} giorni - ${totaleOrePermessi}h):</p>
+                    <p style="margin: 0; color: #1e40af; font-size: 14px; line-height: 1.8;">
+                      ${listaPermessiHtml}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
 
               <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                 <tr>
@@ -644,12 +670,16 @@ export function createVacationValidationRequestTemplate(params: {
 </html>
     `,
     text: `
-Richiesta Validazione Ferie - Presency+
+${titolo} - Presency+
 
-L'utente ${nome} ${cognome} (${email}) richiede la validazione delle seguenti ferie:
+L'utente ${nome} ${cognome} (${email}) richiede la validazione di:
 
-Giorni da validare (${giorniFerie.length} giorni - ${totaleOre}h totali):
-${listaGiorniText}
+${hasFerie ? `FERIE (${ferie.length} giorni - ${totaleOreFerie}h):
+${listaFerieText}
+` : ''}
+${hasPermessi ? `PERMESSI (${permessi.length} giorni - ${totaleOrePermessi}h):
+${listaPermessiText}
+` : ''}
 
 Vai al Calendario Ferie: ${adminUrl}
 

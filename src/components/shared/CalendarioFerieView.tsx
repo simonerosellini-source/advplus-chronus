@@ -25,6 +25,12 @@ interface FerieUtente {
   validate: boolean;
 }
 
+interface PendingItem {
+  data: string;
+  ferie: number;
+  permessi: number;
+}
+
 export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerieViewProps) {
   const [anno, setAnno] = useState(new Date().getFullYear());
   const [mese, setMese] = useState(new Date().getMonth() + 1);
@@ -36,6 +42,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   const [modalGiorno, setModalGiorno] = useState<string | null>(null);
   const [sendingRequest, setSendingRequest] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [allPendingItems, setAllPendingItems] = useState<PendingItem[]>([]);
 
   const supabase = createClient();
   const { showToast } = useToast();
@@ -45,11 +52,29 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     loadCurrentUser();
   }, [anno, mese, userId]);
 
+  // Carica utente corrente e TUTTE le ferie/permessi pendenti
   async function loadCurrentUser() {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data } = await supabase.from('users').select('*').eq('id', user.id).single();
-      if (data) setCurrentUser(data as User);
+      if (data) {
+        setCurrentUser(data as User);
+        // Carica tutte le ferie/permessi pendenti dell'utente
+        loadAllPending(user.id);
+      }
+    }
+  }
+
+  // Carica TUTTE le ferie e permessi da validare (tutti i mesi)
+  async function loadAllPending(uid: string) {
+    try {
+      const response = await fetch(`/api/ferie/pending?userId=${uid}`);
+      if (response.ok) {
+        const { presenze } = await response.json();
+        setAllPendingItems(presenze || []);
+      }
+    } catch (error) {
+      console.error('Errore caricamento pending:', error);
     }
   }
 
@@ -200,22 +225,29 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     }
   }
 
-  // Richiedi validazione ferie (utente)
+  // Richiedi validazione ferie e permessi (utente) - TUTTE quelle pendenti
   async function handleRichiestaValidazione() {
     if (!currentUser) {
       showToast('Errore: utente non trovato', 'error');
       return;
     }
 
-    // Trova le ferie dell'utente corrente non validate
-    const ferieDaValidare = ferieUtenti.filter(
-      f => f.userId === currentUser.id && !f.validate
-    );
-
-    if (ferieDaValidare.length === 0) {
-      showToast('Non hai ferie da validare questo mese', 'info');
+    if (allPendingItems.length === 0) {
+      showToast('Non hai ferie o permessi da validare', 'info');
       return;
     }
+
+    // Prepara lista con ferie e permessi
+    const giorniDaValidare: Array<{ data: string; ore: number; tipo: 'ferie' | 'permessi' }> = [];
+
+    allPendingItems.forEach(p => {
+      if (p.ferie > 0) {
+        giorniDaValidare.push({ data: p.data, ore: p.ferie, tipo: 'ferie' });
+      }
+      if (p.permessi > 0) {
+        giorniDaValidare.push({ data: p.data, ore: p.permessi, tipo: 'permessi' });
+      }
+    });
 
     setSendingRequest(true);
     try {
@@ -227,7 +259,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           nome: currentUser.nome,
           cognome: currentUser.cognome,
           email: currentUser.email,
-          giorniFerie: ferieDaValidare.map(f => ({ data: f.data, ore: f.ore })),
+          giorniFerie: giorniDaValidare,
         }),
       });
 
@@ -412,10 +444,10 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   const calendarDays = getCalendarDays();
   const weekDays = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
-  // Calcola se ci sono ferie da validare per l'utente corrente
-  const ferieDaValidareUtente = currentUser
-    ? ferieUtenti.filter(f => f.userId === currentUser.id && !f.validate)
-    : [];
+  // Calcola totale ferie e permessi pendenti (tutti i mesi)
+  const totalePendingFerie = allPendingItems.filter(p => p.ferie > 0).length;
+  const totalePendingPermessi = allPendingItems.filter(p => p.permessi > 0).length;
+  const totalePending = totalePendingFerie + totalePendingPermessi;
 
   if (loading) {
     return (
@@ -426,7 +458,32 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 relative">
+      {/* Tasto richiesta validazione - posizionato in alto a destra */}
+      {totalePending > 0 && (
+        <div className="absolute top-0 right-0 z-10">
+          <button
+            onClick={handleRichiestaValidazione}
+            disabled={sendingRequest}
+            className="btn-primary flex items-center gap-2 shadow-lg"
+          >
+            {sendingRequest ? (
+              <LoadingSpinner className="h-4 w-4" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            Richiedi Validazione ({totalePending})
+          </button>
+          {(totalePendingFerie > 0 || totalePendingPermessi > 0) && (
+            <div className="text-xs text-gray-500 mt-1 text-right">
+              {totalePendingFerie > 0 && <span>{totalePendingFerie} ferie</span>}
+              {totalePendingFerie > 0 && totalePendingPermessi > 0 && <span> + </span>}
+              {totalePendingPermessi > 0 && <span>{totalePendingPermessi} permessi</span>}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header con navigazione */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
@@ -453,41 +510,23 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           </button>
         </div>
 
-        <div className="flex items-center gap-4 flex-wrap">
-          {/* Tasto richiesta validazione */}
-          {ferieDaValidareUtente.length > 0 && (
-            <button
-              onClick={handleRichiestaValidazione}
-              disabled={sendingRequest}
-              className="btn-primary flex items-center gap-2"
-            >
-              {sendingRequest ? (
-                <LoadingSpinner className="h-4 w-4" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              Richiedi Validazione ({ferieDaValidareUtente.length})
-            </button>
-          )}
-
-          {/* Legenda */}
-          <div className="flex items-center gap-4 text-sm flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-red-100 border border-red-300 rounded" />
-              <span>Festivo</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded" />
-              <span>Semifestivo</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-amber-100 border border-amber-300 rounded" />
-              <span>Ferie (da validare)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
-              <span>Ferie (validate)</span>
-            </div>
+        {/* Legenda */}
+        <div className="flex items-center gap-4 text-sm flex-wrap mr-48">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-red-100 border border-red-300 rounded" />
+            <span>Festivo</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-orange-100 border border-orange-300 rounded" />
+            <span>Semifestivo</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-amber-100 border border-amber-300 rounded" />
+            <span>Ferie (da validare)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
+            <span>Ferie (validate)</span>
           </div>
         </div>
       </div>
