@@ -1,7 +1,7 @@
 'use client';
 
 // Componente Calendario Ferie/Festività condiviso tra admin e dipendente
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Check, X, Circle, Send } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/ui/Loading';
@@ -49,9 +49,9 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   const supabase = createClient();
   const { showToast } = useToast();
 
-  // Debounce per raggruppare le email di approvazione in una singola mail per utente
-  const pendingEmailsRef = useRef<Map<string, FerieUtente[]>>(new Map());
-  const emailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Approvazioni in attesa di notifica email (raggruppate per userId)
+  const [pendingNotifications, setPendingNotifications] = useState<Map<string, FerieUtente[]>>(new Map());
+  const [sendingNotifications, setSendingNotifications] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -149,47 +149,12 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     }
   }
 
-  // Accoda l'item per email batch e avvia il timer di debounce (3s)
-  function queueEmailApprovazione(item: FerieUtente) {
-    const pending = pendingEmailsRef.current;
-    if (!pending.has(item.userId)) {
-      pending.set(item.userId, []);
-    }
-    pending.get(item.userId)!.push(item);
-
-    // Reset del timer: invia UN'unica mail per utente dopo 3s di inattività
-    if (emailTimerRef.current) clearTimeout(emailTimerRef.current);
-    emailTimerRef.current = setTimeout(async () => {
-      const toSend = pendingEmailsRef.current;
-      pendingEmailsRef.current = new Map();
-      for (const items of toSend.values()) {
-        if (items.length === 0) continue;
-        try {
-          await fetch('/api/ferie/email', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'approved',
-              nome: items[0].nome,
-              cognome: items[0].cognome,
-              email: items[0].email,
-              giorniFerie: items.map(i => ({ data: i.data, ore: i.ore })),
-            }),
-          });
-        } catch (emailError) {
-          console.error('Errore invio email batch approvazione:', emailError);
-        }
-      }
-    }, 3000);
-  }
-
-  // Valida una ferie/permesso (approva)
+  // Valida una ferie/permesso (approva) - la notifica email va inviata manualmente
   async function handleApprova(item: FerieUtente) {
     if (item.validate) return; // Già validata
 
     setValidating(item.presenzaId);
     try {
-      // Usa API endpoint con admin client per bypassare RLS
       const response = await fetch('/api/ferie', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -203,7 +168,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
       const result = await response.json();
       if (!result.success) throw new Error(result.error);
 
-      // Aggiorna lo stato locale - approva tutti gli item con stessa presenza
+      // Aggiorna lo stato locale
       setFerieUtenti(prev =>
         prev.map(f =>
           f.odataPresenza === item.odataPresenza
@@ -212,8 +177,13 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
         )
       );
 
-      // Accoda la notifica email (verrà inviata come batch dopo 3s di inattività)
-      queueEmailApprovazione(item);
+      // Accoda la notifica email (l'admin la invierà manualmente con il tasto)
+      setPendingNotifications(prev => {
+        const next = new Map(prev);
+        const existing = next.get(item.userId) ?? [];
+        next.set(item.userId, [...existing, item]);
+        return next;
+      });
 
       const tipoLabel = item.tipo === 'permessi' ? 'Permesso approvato' : 'Ferie approvate';
       showToast(`${tipoLabel} con successo`, 'success');
@@ -222,6 +192,34 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
       showToast('Errore durante l\'approvazione', 'error');
     } finally {
       setValidating(null);
+    }
+  }
+
+  // Invia un'unica email per utente con tutti i giorni approvati
+  async function handleInviaNotifiche() {
+    setSendingNotifications(true);
+    try {
+      for (const items of pendingNotifications.values()) {
+        if (items.length === 0) continue;
+        await fetch('/api/ferie/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'approved',
+            nome: items[0].nome,
+            cognome: items[0].cognome,
+            email: items[0].email,
+            giorniFerie: items.map(i => ({ data: i.data, ore: i.ore })),
+          }),
+        });
+      }
+      setPendingNotifications(new Map());
+      showToast('Notifiche inviate con successo', 'success');
+    } catch (error) {
+      console.error('Errore invio notifiche:', error);
+      showToast('Errore nell\'invio delle notifiche', 'error');
+    } finally {
+      setSendingNotifications(false);
     }
   }
 
@@ -512,6 +510,9 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   const totalePendingPermessi = allPendingItems.filter(p => p.permessi > 0).length;
   const totalePending = totalePendingFerie + totalePendingPermessi;
 
+  // Totale approvazioni in attesa di notifica email
+  const totaleNotifichePendenti = Array.from(pendingNotifications.values()).reduce((acc, items) => acc + items.length, 0);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -548,30 +549,50 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           </button>
         </div>
 
-        {/* Tasto richiesta validazione */}
-        {totalePending > 0 && (
-          <div className="flex flex-col items-end">
+        {/* Tasti destra: notifiche admin + richiesta validazione utente */}
+        <div className="flex items-center gap-3">
+          {/* Tasto "Invia notifiche" - solo admin, quando ci sono approvazioni da notificare */}
+          {isAdmin && totaleNotifichePendenti > 0 && (
             <button
-              onClick={handleRichiestaValidazione}
-              disabled={sendingRequest}
-              className="btn-primary flex items-center gap-2 shadow-lg"
+              onClick={handleInviaNotifiche}
+              disabled={sendingNotifications}
+              className="btn-outline flex items-center gap-2"
+              title="Invia una singola email con tutte le approvazioni effettuate"
             >
-              {sendingRequest ? (
+              {sendingNotifications ? (
                 <LoadingSpinner className="h-4 w-4" />
               ) : (
                 <Send className="h-4 w-4" />
               )}
-              Richiedi Validazione ({totalePending})
+              Invia notifiche ({totaleNotifichePendenti})
             </button>
-            {(totalePendingFerie > 0 || totalePendingPermessi > 0) && (
-              <div className="text-xs text-gray-500 mt-1 text-right">
-                {totalePendingFerie > 0 && <span>{totalePendingFerie} ferie</span>}
-                {totalePendingFerie > 0 && totalePendingPermessi > 0 && <span> + </span>}
-                {totalePendingPermessi > 0 && <span>{totalePendingPermessi} permessi</span>}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+
+          {/* Tasto "Richiedi Validazione" - utente, quando ha ferie/permessi da validare */}
+          {totalePending > 0 && (
+            <div className="flex flex-col items-end">
+              <button
+                onClick={handleRichiestaValidazione}
+                disabled={sendingRequest}
+                className="btn-primary flex items-center gap-2 shadow-lg"
+              >
+                {sendingRequest ? (
+                  <LoadingSpinner className="h-4 w-4" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                Richiedi Validazione ({totalePending})
+              </button>
+              {(totalePendingFerie > 0 || totalePendingPermessi > 0) && (
+                <div className="text-xs text-gray-500 mt-1 text-right">
+                  {totalePendingFerie > 0 && <span>{totalePendingFerie} ferie</span>}
+                  {totalePendingFerie > 0 && totalePendingPermessi > 0 && <span> + </span>}
+                  {totalePendingPermessi > 0 && <span>{totalePendingPermessi} permessi</span>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Legenda */}
