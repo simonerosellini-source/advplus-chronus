@@ -1,7 +1,7 @@
 'use client';
 
 // Componente Calendario Ferie/Festività condiviso tra admin e dipendente
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Check, X, Circle, Send } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/ui/Loading';
@@ -48,6 +48,10 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
 
   const supabase = createClient();
   const { showToast } = useToast();
+
+  // Debounce per raggruppare le email di approvazione in una singola mail per utente
+  const pendingEmailsRef = useRef<Map<string, FerieUtente[]>>(new Map());
+  const emailTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     loadData();
@@ -145,6 +149,40 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     }
   }
 
+  // Accoda l'item per email batch e avvia il timer di debounce (3s)
+  function queueEmailApprovazione(item: FerieUtente) {
+    const pending = pendingEmailsRef.current;
+    if (!pending.has(item.userId)) {
+      pending.set(item.userId, []);
+    }
+    pending.get(item.userId)!.push(item);
+
+    // Reset del timer: invia UN'unica mail per utente dopo 3s di inattività
+    if (emailTimerRef.current) clearTimeout(emailTimerRef.current);
+    emailTimerRef.current = setTimeout(async () => {
+      const toSend = pendingEmailsRef.current;
+      pendingEmailsRef.current = new Map();
+      for (const items of toSend.values()) {
+        if (items.length === 0) continue;
+        try {
+          await fetch('/api/ferie/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'approved',
+              nome: items[0].nome,
+              cognome: items[0].cognome,
+              email: items[0].email,
+              giorniFerie: items.map(i => ({ data: i.data, ore: i.ore })),
+            }),
+          });
+        } catch (emailError) {
+          console.error('Errore invio email batch approvazione:', emailError);
+        }
+      }
+    }, 3000);
+  }
+
   // Valida una ferie/permesso (approva)
   async function handleApprova(item: FerieUtente) {
     if (item.validate) return; // Già validata
@@ -174,24 +212,10 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
         )
       );
 
-      // Invia email di notifica
-      const tipoLabel = item.tipo === 'permessi' ? 'Permesso approvato' : 'Ferie approvate';
-      try {
-        await fetch('/api/ferie/email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'approved',
-            nome: item.nome,
-            cognome: item.cognome,
-            email: item.email,
-            giorniFerie: [{ data: item.data, ore: item.ore }],
-          }),
-        });
-      } catch (emailError) {
-        console.error('Errore invio email approvazione:', emailError);
-      }
+      // Accoda la notifica email (verrà inviata come batch dopo 3s di inattività)
+      queueEmailApprovazione(item);
 
+      const tipoLabel = item.tipo === 'permessi' ? 'Permesso approvato' : 'Ferie approvate';
       showToast(`${tipoLabel} con successo`, 'success');
     } catch (error) {
       console.error('Errore approvazione:', error);
