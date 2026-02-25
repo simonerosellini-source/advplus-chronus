@@ -556,7 +556,7 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
             <button
               onClick={handleInviaNotifiche}
               disabled={sendingNotifications}
-              className="btn-outline flex items-center gap-2"
+              className="btn-primary flex items-center gap-2 shadow-lg"
               title="Invia una singola email con tutte le approvazioni effettuate"
             >
               {sendingNotifications ? (
