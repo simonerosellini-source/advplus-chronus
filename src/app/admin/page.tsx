@@ -2,13 +2,14 @@
 
 // Dashboard Amministratore - Pagina principale con tab navigation
 import { useState } from 'react';
-import { Users, Calendar as CalendarIcon, CalendarDays, BarChart3 } from 'lucide-react';
+import { Users, Calendar as CalendarIcon, CalendarDays, BarChart3, CalendarRange } from 'lucide-react';
 import { PresenzeView } from '@/components/admin/PresenzeView';
 import { GestioneUtentiView } from '@/components/admin/GestioneUtentiView';
 import { GestioneFestiviView } from '@/components/admin/GestioneFestiviView';
 import { ReportView } from '@/components/admin/ReportView';
+import { CalendarioFerieView } from '@/components/shared/CalendarioFerieView';
 
-type Tab = 'presenze' | 'utenti' | 'festivi' | 'report';
+type Tab = 'presenze' | 'utenti' | 'festivi' | 'calendario-ferie' | 'report';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('presenze');
@@ -17,6 +18,7 @@ export default function AdminDashboard() {
     { id: 'presenze' as Tab, label: 'Presenze', icon: CalendarIcon },
     { id: 'utenti' as Tab, label: 'Gestione Utenti', icon: Users },
     { id: 'festivi' as Tab, label: 'Calendario Festività', icon: CalendarDays },
+    { id: 'calendario-ferie' as Tab, label: 'Calendario Ferie', icon: CalendarRange },
     { id: 'report' as Tab, label: 'Report e Statistiche', icon: BarChart3 },
   ];
 
@@ -61,6 +63,7 @@ export default function AdminDashboard() {
           {activeTab === 'presenze' && <PresenzeView />}
           {activeTab === 'utenti' && <GestioneUtentiView />}
           {activeTab === 'festivi' && <GestioneFestiviView />}
+          {activeTab === 'calendario-ferie' && <CalendarioFerieView isAdmin={true} />}
           {activeTab === 'report' && <ReportView />}
         </div>
       </div>

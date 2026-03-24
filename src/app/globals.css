@@ -19,8 +19,26 @@
 
 @layer components {
   /* Stili per la griglia presenze tipo Excel */
+  /* Container wrapper per scrollbar orizzontale in alto */
+  .presenze-wrapper {
+    @apply border border-gray-300 rounded-lg shadow-sm;
+  }
+
+  /* Scrollbar orizzontale superiore - usa stile nativo del browser */
+  .presenze-scroll-top {
+    @apply overflow-x-auto overflow-y-hidden;
+  }
+
+  /* Container principale della tabella */
   .presenze-grid {
-    @apply overflow-x-auto border border-gray-300 rounded-lg shadow-sm;
+    @apply overflow-auto;
+    max-height: calc(100vh - 320px);
+  }
+
+  /* Nascondi scrollbar orizzontale nel container principale */
+  .presenze-grid::-webkit-scrollbar:horizontal {
+    height: 0;
+    display: none;
   }
 
   .presenze-table {

@@ -1,6 +1,7 @@
 'use client';
 
 // Componente Griglia Presenze tipo Excel
+import { useRef, useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { getGiorniMese, formatTime, toISODate, isFuturo, formatOreTotali } from '@/lib/utils/date';
 import type { User, Presenza, GiornoFestivo, GiornoCalendario, RigaPresenze, PremioMensile, GiornoSettimana, OrarioGiornaliero } from '@/types/database.types';
@@ -27,6 +28,59 @@ export function GrigliaPresenze({
   onPremioClick,
 }: GrigliaPresenzeProps) {
   const giorniMese = getGiorniMese(anno, mese);
+
+  // Refs per sincronizzare scroll orizzontale
+  const scrollTopRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [tableWidth, setTableWidth] = useState(0);
+
+  // Sincronizza lo scroll tra la scrollbar superiore e la tabella
+  useEffect(() => {
+    const scrollTop = scrollTopRef.current;
+    const grid = gridRef.current;
+
+    if (!scrollTop || !grid) return;
+
+    // Aggiorna la larghezza della tabella per la scrollbar superiore
+    const updateWidth = () => {
+      const table = grid.querySelector('table');
+      if (table) {
+        setTableWidth(table.scrollWidth);
+      }
+    };
+
+    updateWidth();
+    // Aggiorna quando cambia il mese/anno
+    const observer = new ResizeObserver(updateWidth);
+    const table = grid.querySelector('table');
+    if (table) observer.observe(table);
+
+    let isSyncingFromTop = false;
+    let isSyncingFromGrid = false;
+
+    const handleScrollTop = () => {
+      if (isSyncingFromGrid) return;
+      isSyncingFromTop = true;
+      grid.scrollLeft = scrollTop.scrollLeft;
+      requestAnimationFrame(() => { isSyncingFromTop = false; });
+    };
+
+    const handleScrollGrid = () => {
+      if (isSyncingFromTop) return;
+      isSyncingFromGrid = true;
+      scrollTop.scrollLeft = grid.scrollLeft;
+      requestAnimationFrame(() => { isSyncingFromGrid = false; });
+    };
+
+    scrollTop.addEventListener('scroll', handleScrollTop);
+    grid.addEventListener('scroll', handleScrollGrid);
+
+    return () => {
+      scrollTop.removeEventListener('scroll', handleScrollTop);
+      grid.removeEventListener('scroll', handleScrollGrid);
+      observer.disconnect();
+    };
+  }, [anno, mese]);
 
   // Debug: verifica formato date
   console.log('GrigliaPresenze - Mese:', mese, 'Anno:', anno);
@@ -258,11 +312,18 @@ export function GrigliaPresenze({
   }
 
   return (
-    <div className="presenze-grid">
-      <table className="presenze-table">
-        <thead>
-          <tr>
-            <th className="sticky left-0 bg-primary z-20 min-w-[150px]">Nome</th>
+    <div className="presenze-wrapper">
+      {/* Scrollbar orizzontale in alto */}
+      <div ref={scrollTopRef} className="presenze-scroll-top">
+        <div style={{ width: tableWidth, height: 1 }} />
+      </div>
+
+      {/* Griglia principale */}
+      <div ref={gridRef} className="presenze-grid">
+        <table className="presenze-table">
+          <thead>
+            <tr>
+              <th className="sticky left-0 top-0 bg-primary z-30 min-w-[150px]">Nome</th>
             {giorniMese.map((data) => {
               const giorno = data.getDate();
               const giornoSettimana = ['D', 'L', 'M', 'M', 'G', 'V', 'S'][data.getDay()];
@@ -270,7 +331,7 @@ export function GrigliaPresenze({
               return (
                 <th
                   key={giorno}
-                  className={`min-w-[60px] ${isWeekend ? 'bg-primary-dark' : ''}`}
+                  className={`min-w-[60px] ${isWeekend ? 'bg-primary-dark' : 'bg-primary'}`}
                 >
                   <div>{giorno}</div>
                   <div className="text-[10px] font-normal">{giornoSettimana}</div>
@@ -358,7 +419,8 @@ export function GrigliaPresenze({
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
   );
 }

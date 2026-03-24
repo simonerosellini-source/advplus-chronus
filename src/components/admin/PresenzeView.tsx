@@ -531,7 +531,7 @@ export function PresenzeView() {
         doc.text(ruoloText, 14, 28);
 
         // === CALCOLA TOTALI PER QUESTO UTENTE ===
-        let totaleOrario = 0;
+        let totaleOreOrdinarie = 0;
         let totaleStraordinari = 0;
         let totaleMalattia = 0;
         let totaleFerie = 0;
@@ -576,8 +576,11 @@ export function PresenzeView() {
             const legge104 = presenza.legge_104 || 0;
             const trasferta = presenza.trasferta ? 1 : 0;
 
+            // Ore ordinarie = ore totali - straordinari (come nella griglia web)
+            const oreOrdinarie = oreTotali - straordinari;
+
             // Accumula totali
-            totaleOrario += oreTotali;
+            totaleOreOrdinarie += oreOrdinarie;
             totaleStraordinari += straordinari;
             totaleMalattia += malattia;
             totaleFerie += ferie;
@@ -585,7 +588,7 @@ export function PresenzeView() {
             totaleLegge104 += legge104;
             totaleTrasferte += trasferta;
 
-            orario = oreTotali > 0 ? formatOreTotali(oreTotali) : '-';
+            orario = oreOrdinarie > 0 ? formatOreTotali(oreOrdinarie) : '-';
             strSup = straordinari > 0 ? formatOreTotali(straordinari) : '';
             mal = malattia > 0 ? formatOreTotali(malattia) : '';
             fer = ferie > 0 ? formatOreTotali(ferie) : '';
@@ -613,7 +616,7 @@ export function PresenzeView() {
           '',
           'TOTALI',
           '',
-          formatOreTotali(totaleOrario),
+          formatOreTotali(totaleOreOrdinarie),
           totaleStraordinari > 0 ? formatOreTotali(totaleStraordinari) : '',
           totaleMalattia > 0 ? formatOreTotali(totaleMalattia) : '',
           totaleFerie > 0 ? formatOreTotali(totaleFerie) : '',
@@ -642,7 +645,7 @@ export function PresenzeView() {
           },
           columnStyles: {
             0: { cellWidth: 10, halign: 'center' }, // Giorno numero
-            1: { cellWidth: 12, halign: 'center' }, // Giorno settimana
+            1: { cellWidth: 16, halign: 'center' }, // Giorno settimana / TOTALI
             2: { cellWidth: 12, halign: 'center', textColor: [0, 128, 0] }, // FEST (verde)
             3: { cellWidth: 18, halign: 'center' }, // ORARIO
             4: { cellWidth: 18, halign: 'center' }, // STR/SUP
@@ -650,7 +653,7 @@ export function PresenzeView() {
             6: { cellWidth: 18, halign: 'center' }, // FER
             7: { cellWidth: 18, halign: 'center' }, // PER
             8: { cellWidth: 18, halign: 'center' }, // L104
-            9: { cellWidth: 12, halign: 'center' }, // TR
+            9: { cellWidth: 10, halign: 'center' }, // TR
           },
           didParseCell: function(data) {
             // Testo sempre nero

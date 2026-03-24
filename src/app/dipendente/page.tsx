@@ -1,7 +1,7 @@
 // Dashboard Dipendente/Collaboratore
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { PresenzePersonali } from '@/components/dipendente/PresenzePersonali';
+import { DipendenteDashboardTabs } from '@/components/dipendente/DipendenteDashboardTabs';
 import type { User } from '@/types/database.types';
 
 export default async function DipendenteDashboard() {
@@ -38,8 +38,8 @@ export default async function DipendenteDashboard() {
         </p>
       </div>
 
-      {/* Vista presenze personali */}
-      <PresenzePersonali userId={user.id} />
+      {/* Dashboard con tabs */}
+      <DipendenteDashboardTabs userId={user.id} ruolo={userData.ruolo} />
     </div>
   );
 }
