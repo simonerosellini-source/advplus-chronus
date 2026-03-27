@@ -2,7 +2,7 @@
 
 // Componente Calendario Ferie/Festività condiviso tra admin e dipendente
 import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Check, X, Circle, Send } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X, Circle, Send, CalendarDays, CheckCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingSpinner } from '@/components/ui/Loading';
 import { useToast } from '@/components/ui/Toast';
@@ -45,6 +45,18 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
   const [sendingRequest, setSendingRequest] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [allPendingItems, setAllPendingItems] = useState<PendingItem[]>([]);
+
+  // Selezione multi-giorno (solo dipendente)
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set());
+  const [selectionType, setSelectionType] = useState<'ferie' | 'permessi'>('ferie');
+  const [selectionOre, setSelectionOre] = useState(8);
+  const [submittingSelection, setSubmittingSelection] = useState(false);
+
+  // Selezione item per approvazione (solo admin)
+  const [adminSelectionMode, setAdminSelectionMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set()); // Set di presenzaId
+  const [approvingSelected, setApprovingSelected] = useState(false);
 
   const supabase = createClient();
   const { showToast } = useToast();
@@ -304,6 +316,138 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     }
   }
 
+  // Toggle selezione giorno (dipendente)
+  function handleToggleDay(data: string, giorno: Date) {
+    const isWeekend = giorno.getDay() === 0 || giorno.getDay() === 6;
+    const festivo = getFestivo(data);
+    if (isWeekend || festivo?.tipo === 'festivo') return;
+
+    setSelectedDays(prev => {
+      const next = new Set(prev);
+      if (next.has(data)) {
+        next.delete(data);
+      } else {
+        next.add(data);
+      }
+      return next;
+    });
+  }
+
+  function exitSelectionMode() {
+    setSelectionMode(false);
+    setSelectedDays(new Set());
+    setSelectionOre(8);
+    setSelectionType('ferie');
+  }
+
+  // Salva i giorni selezionati come ferie/permessi (dipendente)
+  async function handleSalvaGiorni() {
+    if (!currentUser || selectedDays.size === 0) return;
+
+    setSubmittingSelection(true);
+    try {
+      const response = await fetch('/api/ferie/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          giorni: Array.from(selectedDays).sort(),
+          tipo: selectionType,
+          ore: selectionOre,
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        showToast(`${result.count} giorni salvati come ${selectionType}`, 'success');
+        exitSelectionMode();
+        loadData();
+        loadAllPending(currentUser.id);
+      } else {
+        showToast('Errore durante il salvataggio', 'error');
+      }
+    } catch (error) {
+      console.error('Errore salvataggio giorni:', error);
+      showToast('Errore durante il salvataggio', 'error');
+    } finally {
+      setSubmittingSelection(false);
+    }
+  }
+
+  // Toggle selezione item ferie (admin)
+  function handleToggleItem(presenzaId: string) {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(presenzaId)) {
+        next.delete(presenzaId);
+      } else {
+        next.add(presenzaId);
+      }
+      return next;
+    });
+  }
+
+  function exitAdminSelectionMode() {
+    setAdminSelectionMode(false);
+    setSelectedItems(new Set());
+  }
+
+  // Approva i giorni selezionati (admin) — una email per dipendente
+  async function handleApprovaSelezionati() {
+    const itemsSelezionati = ferieUtenti.filter(
+      f => selectedItems.has(f.presenzaId) && !f.validate
+    );
+    if (itemsSelezionati.length === 0) return;
+
+    // Raggruppa per userId
+    const perUtente = new Map<string, { nome: string; cognome: string; email: string; presenzaIds: string[] }>();
+    for (const f of itemsSelezionati) {
+      if (!perUtente.has(f.userId)) {
+        perUtente.set(f.userId, { nome: f.nome, cognome: f.cognome, email: f.email, presenzaIds: [] });
+      }
+      const entry = perUtente.get(f.userId)!;
+      // Raccoglie odataPresenza univoci per questo utente
+      if (!entry.presenzaIds.includes(f.odataPresenza)) {
+        entry.presenzaIds.push(f.odataPresenza);
+      }
+    }
+
+    setApprovingSelected(true);
+    try {
+      let totaleApprovati = 0;
+      for (const [, utente] of perUtente) {
+        const response = await fetch('/api/ferie/batch-approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            presenzaIds: utente.presenzaIds,
+            nome: utente.nome,
+            cognome: utente.cognome,
+            email: utente.email,
+          }),
+        });
+        const result = await response.json();
+        if (result.success) totaleApprovati += result.count;
+      }
+
+      // Aggiorna stato locale: gli item selezionati diventano validati
+      const presenzaIdsApprovati = [...new Set(itemsSelezionati.map(f => f.odataPresenza))];
+      setFerieUtenti(prev =>
+        prev.map(f =>
+          presenzaIdsApprovati.includes(f.odataPresenza) ? { ...f, validate: true } : f
+        )
+      );
+
+      showToast(`${totaleApprovati} giorni approvati — email inviata`, 'success');
+      exitAdminSelectionMode();
+    } catch (error) {
+      console.error('Errore approvazione selezionati:', error);
+      showToast('Errore durante l\'approvazione', 'error');
+    } finally {
+      setApprovingSelected(false);
+    }
+  }
+
   // Navigazione mesi
   function prevMonth() {
     if (mese === 1) {
@@ -369,14 +513,28 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
     const ferie = getFerieGiorno(data);
     const oggi = new Date();
     const isOggi = toISODate(oggi) === data;
+    const isSelected = selectedDays.has(data);
+    const isSelectable = selectionMode && !isWeekend && festivo?.tipo !== 'festivo';
 
     let classes = 'min-h-[100px] p-2 border border-gray-200 transition-colors ';
 
-    if (isOggi) {
+    if (isOggi && !isSelected) {
       classes += 'ring-2 ring-primary ring-inset ';
     }
 
-    if (festivo?.tipo === 'festivo') {
+    if (isSelected) {
+      classes += 'bg-blue-100 ring-2 ring-blue-500 ring-inset cursor-pointer ';
+    } else if (isSelectable) {
+      classes += 'cursor-pointer hover:bg-blue-50 ';
+      if (festivo?.tipo === 'semifestivo') {
+        classes += 'bg-orange-100 ';
+      } else if (ferie.length > 0) {
+        const tutteValidate = ferie.every(f => f.validate);
+        classes += tutteValidate ? 'bg-green-50 ' : 'bg-amber-50 ';
+      } else {
+        classes += 'bg-white ';
+      }
+    } else if (festivo?.tipo === 'festivo') {
       classes += 'bg-red-100 ';
     } else if (festivo?.tipo === 'semifestivo') {
       classes += 'bg-orange-100 ';
@@ -413,6 +571,26 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
       if (f.validate) return 'text-green-700';
       return isPermesso ? 'text-blue-700' : 'text-amber-700';
     };
+
+    const isItemSelected = selectedItems.has(f.presenzaId);
+
+    // In admin selection mode: il badge è cliccabile e mostra stato selezione (solo per item non ancora validati)
+    if (isAdmin && adminSelectionMode && !f.validate) {
+      return (
+        <div
+          key={f.presenzaId}
+          onClick={(e) => { e.stopPropagation(); handleToggleItem(f.presenzaId); }}
+          className={`text-xs px-1 py-0.5 rounded flex items-center justify-between gap-1 cursor-pointer transition-all ${getColorClasses()} ${inModal ? 'py-2 px-3 text-sm' : 'truncate'} ${isItemSelected ? 'ring-2 ring-green-500' : 'hover:ring-2 hover:ring-green-300'}`}
+        >
+          <span className={inModal ? '' : 'truncate'}>
+            {isPermesso ? 'P: ' : ''}{f.cognome} {f.nome[0]}. {f.ore}h
+          </span>
+          <div className={`w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center transition-colors ${isItemSelected ? 'bg-green-500 border-green-500' : 'border-current bg-white/50'}`}>
+            {isItemSelected && <Check className="h-2.5 w-2.5 text-white" />}
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div
@@ -524,31 +702,168 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
           </button>
         </div>
 
-        {/* Tasto richiesta validazione */}
-        {totalePending > 0 && (
-          <div className="flex flex-col items-end">
+        {/* Azioni admin */}
+        {isAdmin && (
+          <button
+            onClick={() => adminSelectionMode ? exitAdminSelectionMode() : setAdminSelectionMode(true)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${
+              adminSelectionMode
+                ? 'bg-green-600 text-white border-green-600 hover:bg-green-700'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            <CheckCheck className="h-4 w-4" />
+            {adminSelectionMode ? 'Annulla selezione' : 'Seleziona per approvare'}
+          </button>
+        )}
+
+        {/* Azioni dipendente */}
+        {!isAdmin && (
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Tasto selezione multi-giorno */}
             <button
-              onClick={handleRichiestaValidazione}
-              disabled={sendingRequest}
-              className="btn-primary flex items-center gap-2 shadow-lg"
+              onClick={() => selectionMode ? exitSelectionMode() : setSelectionMode(true)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-medium text-sm transition-colors ${
+                selectionMode
+                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
             >
-              {sendingRequest ? (
-                <LoadingSpinner className="h-4 w-4" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              Richiedi Validazione ({totalePending})
+              <CalendarDays className="h-4 w-4" />
+              {selectionMode ? 'Annulla selezione' : 'Seleziona giorni ferie'}
             </button>
-            {(totalePendingFerie > 0 || totalePendingPermessi > 0) && (
-              <div className="text-xs text-gray-500 mt-1 text-right">
-                {totalePendingFerie > 0 && <span>{totalePendingFerie} ferie</span>}
-                {totalePendingFerie > 0 && totalePendingPermessi > 0 && <span> + </span>}
-                {totalePendingPermessi > 0 && <span>{totalePendingPermessi} permessi</span>}
+
+            {/* Tasto richiesta validazione */}
+            {totalePending > 0 && (
+              <div className="flex flex-col items-end">
+                <button
+                  onClick={handleRichiestaValidazione}
+                  disabled={sendingRequest}
+                  className="btn-primary flex items-center gap-2 shadow-lg"
+                >
+                  {sendingRequest ? (
+                    <LoadingSpinner className="h-4 w-4" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  Richiedi Validazione ({totalePending})
+                </button>
+                {(totalePendingFerie > 0 || totalePendingPermessi > 0) && (
+                  <div className="text-xs text-gray-500 mt-1 text-right">
+                    {totalePendingFerie > 0 && <span>{totalePendingFerie} ferie</span>}
+                    {totalePendingFerie > 0 && totalePendingPermessi > 0 && <span> + </span>}
+                    {totalePendingPermessi > 0 && <span>{totalePendingPermessi} permessi</span>}
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* Pannello selezione giorni */}
+      {selectionMode && !isAdmin && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="flex items-center gap-2 text-blue-800 font-medium">
+              <CalendarDays className="h-5 w-5" />
+              <span>
+                {selectedDays.size === 0
+                  ? 'Clicca sui giorni per selezionarli'
+                  : `${selectedDays.size} giorn${selectedDays.size === 1 ? 'o' : 'i'} selezionat${selectedDays.size === 1 ? 'o' : 'i'}`}
+              </span>
+            </div>
+
+            {selectedDays.size > 0 && (
+              <>
+                {/* Tipo */}
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-sm font-medium text-gray-700">
+                    <input
+                      type="radio"
+                      name="selectionType"
+                      value="ferie"
+                      checked={selectionType === 'ferie'}
+                      onChange={() => setSelectionType('ferie')}
+                      className="accent-amber-500"
+                    />
+                    Ferie
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-sm font-medium text-gray-700">
+                    <input
+                      type="radio"
+                      name="selectionType"
+                      value="permessi"
+                      checked={selectionType === 'permessi'}
+                      onChange={() => setSelectionType('permessi')}
+                      className="accent-blue-500"
+                    />
+                    Permessi
+                  </label>
+                </div>
+
+                {/* Ore */}
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">Ore:</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={8}
+                    step={0.5}
+                    value={selectionOre}
+                    onChange={e => setSelectionOre(Number(e.target.value))}
+                    className="w-16 border border-gray-300 rounded px-2 py-1 text-sm text-center"
+                  />
+                </div>
+
+                {/* Salva */}
+                <button
+                  onClick={handleSalvaGiorni}
+                  disabled={submittingSelection}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {submittingSelection ? (
+                    <LoadingSpinner className="h-4 w-4" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                  Salva
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pannello selezione approvazione admin */}
+      {adminSelectionMode && isAdmin && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="flex items-center gap-2 text-green-800 font-medium">
+              <CheckCheck className="h-5 w-5" />
+              <span>
+                {selectedItems.size === 0
+                  ? 'Clicca sui badge per selezionare i giorni da approvare'
+                  : `${selectedItems.size} giorn${selectedItems.size === 1 ? 'o' : 'i'} selezionat${selectedItems.size === 1 ? 'o' : 'i'}`}
+              </span>
+            </div>
+            {selectedItems.size > 0 && (
+              <button
+                onClick={handleApprovaSelezionati}
+                disabled={approvingSelected}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+              >
+                {approvingSelected ? (
+                  <LoadingSpinner className="h-4 w-4" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                Approva selezionati
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Legenda */}
       <div className="flex items-center gap-4 text-sm flex-wrap">
@@ -597,7 +912,11 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
             const ferie = getFerieGiorno(data);
 
             return (
-              <div key={data} className={getDayClassName(data, giorno)}>
+              <div
+                key={data}
+                className={getDayClassName(data, giorno)}
+                onClick={() => selectionMode && !isAdmin ? handleToggleDay(data, giorno) : undefined}
+              >
                 {/* Numero giorno */}
                 <div className="flex items-center justify-between mb-1">
                   <span className={`text-sm font-medium ${
@@ -605,6 +924,12 @@ export function CalendarioFerieView({ userId, isAdmin = false }: CalendarioFerie
                   }`}>
                     {giorno.getDate()}
                   </span>
+                  {/* Indicatore selezione */}
+                  {selectedDays.has(data) && (
+                    <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Check className="h-3 w-3 text-white" />
+                    </div>
+                  )}
                 </div>
 
                 {/* Festivo */}
